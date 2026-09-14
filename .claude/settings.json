@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*KEY*)",
+      "Read(**/*TOKEN*)",
+      "Read(**/*SECRET*)",
+      "Read(**/*.pem)",
+      "Read(materials/client-brief.md)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Bash(cat *.env*)",
+      "Bash(type *.env*)",
+      "Bash(printenv*)",
+      "Bash(env)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(nc *)",
+      "Bash(scp *)",
+      "PowerShell(Get-Content *.env*)",
+      "PowerShell(Invoke-WebRequest *)",
+      "PowerShell(Invoke-RestMethod *)",
+      "PowerShell(iwr *)",
+      "PowerShell(irm *)",
+      "WebFetch"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr comment*)",
+      "Bash(gh issue *)",
+      "PowerShell(git push*)",
+      "PowerShell(gh *)"
+    ]
+  }
+}
