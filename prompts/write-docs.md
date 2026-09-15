@@ -57,9 +57,16 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
 
 ## Constraints (Обмеження)
 
-- **Only `app/README.md` is written.** It now exists (this prompt generated it):
-  regenerate it in full and overwrite, never append a second copy of a section.
-  No other file is written, moved or deleted: no scratch script, no fix.
+- **Only `app/README.md` survives the run.** It now exists (this prompt
+  generated it): regenerate it in full and overwrite, never append a second copy
+  of a section. No other file is written, moved or deleted — no fix, no notes
+  file — with exactly one exception, below.
+- **The one exception: a throwaway `app/*.mjs`**, and only if your session cannot
+  run `node --input-type=module -e` (`.claude/settings.json` denies
+  `Bash(node -e*)`). Put the same import and `console.log` lines in it, run it,
+  paste the output, then **delete it before** the final `git status --porcelain`
+  check. It is a way to execute the documented one-liner, not a licence to keep a
+  script: if it still exists when you stop, the run has failed its own criteria.
 - Document only exported symbols. Private helpers are not part of the contract.
 - Every expected output comes from exactly one of two sources: an assertion in
   `app/src/quote.test.ts`, cited by its `it(...)` name, or a command you ran and
@@ -128,7 +135,7 @@ verification and say which one.
 
 **2026-09-14 — `app/src/quote.ts` → `app/README.md`.** Full trace: [`runs/write-docs.md`](./runs/write-docs.md).
 
-- **Produced:** `app/README.md`, the only file written; 4 symbol sections; 10
+- **Produced:** `app/README.md`, the only file written; 5 symbol sections; 10
   examples, each executed and then re-run by extracting it from the finished file;
   signatures checked with `grep -cxF`; quoted test names diffed against the suite.
 - **Refused:** to print outputs for undefined inputs, listing them as unguarded

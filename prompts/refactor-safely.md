@@ -23,7 +23,7 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
 
 ## Context (Контекст)
 
-- Target: `app/src/quote.ts` — 51 lines. Public API: `estimateTotalCents`,
+- Target: `app/src/quote.ts` — 95 lines. Public API: `estimateTotalCents`,
   `splitInstallments`, `formatMoney`, and the exported interface `QuoteInput`.
 - Safety net: `app/src/quote.test.ts` — 40 `it` cases in 8 `describe` blocks, run with
   `cd app && npm test` (vitest). Second net: `cd app && npm run typecheck`
@@ -70,7 +70,7 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
 - Every proposal must cite a symptom at `app/src/quote.ts:line` — an expression duplicated
   at two or more numbered lines, or a construct that already caused a defect. A principle
   (DRY, SRP, "readability") is not a symptom and is rejected.
-- Maximum 3 proposals. The module is 51 lines and the suite is green, so the expected
+- Maximum 3 proposals. The module is 95 lines and the suite is green, so the expected
   default answer is "no refactor worth doing"; proposing nothing costs you nothing.
 - A change not covered by an existing test is **unsafe-to-apply** until a test is added.
 
@@ -87,7 +87,7 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
 - [ ] Each proposal has a one-line cost/benefit verdict, and proposals that do not pay
       for themselves are marked **do not do**.
 - [ ] The plan states the total number of lines it would change. If that number exceeds
-      51 — the size of the module — the plan is rejected by its own rule.
+      95 — the size of the module — the plan is rejected by its own rule.
 - [ ] There are at most 3 proposals, and none is justified only by a principle.
 - [ ] Nothing was applied: `git status --porcelain` prints exactly what it printed
       before the run, and both outputs are shown.

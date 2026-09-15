@@ -127,7 +127,7 @@ RangeError: total must be a safe integer number of cents, got NaN
 ```
 
 Asserted by `it("відхиляє переповнення у проміжному добутку замість тихого NaN")`,
-`it("відхиляє суму поза межами безпечного цілого")` and
+`it("estimateTotalCents відхиляє кошторис поза межами безпечного цілого")` and
 `it("приймає найбільшу суму, яка ще є безпечним цілим")`.
 
 Example — ten hours at $50.00 per hour, no discount:
