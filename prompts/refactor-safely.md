@@ -25,7 +25,7 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
 
 - Target: `app/src/quote.ts` — 51 lines. Public API: `estimateTotalCents`,
   `splitInstallments`, `formatMoney`, and the exported interface `QuoteInput`.
-- Safety net: `app/src/quote.test.ts` — 38 `it` cases in 8 `describe` blocks, run with
+- Safety net: `app/src/quote.test.ts` — 40 `it` cases in 8 `describe` blocks, run with
   `cd app && npm test` (vitest). Second net: `cd app && npm run typecheck`
   (`tsc --noEmit`, strict) catches signature drift the suite would miss.
 - In-repo consumers: `app/src/quote.test.ts`, and `app/README.md`, which
@@ -39,7 +39,7 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
     `discountPercent` outside `0..100`, and on a computed total that is not a safe
     integer.
   - `splitInstallments` throws `RangeError` on `parts` outside
-    `1..MAX_INSTALLMENTS` and on a non-integer `totalCents`.
+    `1..MAX_INSTALLMENTS` and on a `totalCents` that is not a safe integer.
   - `formatMoney` throws `RangeError` on non-finite `cents`, and **rounds**
     fractional cents: `formatMoney(0.5)` is `"$0.01"`.
 - **Live wires — real behaviour that no test pins**, so none of it may change:

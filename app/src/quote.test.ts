@@ -228,7 +228,7 @@ describe("переповнення й межі розміру", () => {
     expect(() => estimateTotalCents({ hours: Number.MAX_VALUE, rateCents: 2 })).toThrow(RangeError);
   });
 
-  it("відхиляє суму поза межами безпечного цілого", () => {
+  it("estimateTotalCents відхиляє кошторис поза межами безпечного цілого", () => {
     expect(() => estimateTotalCents({ hours: 1e9, rateCents: 1e9 })).toThrow(RangeError);
   });
 
@@ -242,6 +242,17 @@ describe("переповнення й межі розміру", () => {
     expect(() => splitInstallments(100000, MAX_INSTALLMENTS + 1)).toThrow(RangeError);
     // Значення, яке проходило перевірку "додатне ціле" і вичерпувало пам'ять.
     expect(() => splitInstallments(100000, 4_294_967_295)).toThrow(RangeError);
+  });
+
+  it("splitInstallments відхиляє суму поза межами безпечного цілого", () => {
+    // Number.isInteger(2 ** 53) === true, але арифметика тут уже не точна.
+    expect(() => splitInstallments(Number.MAX_SAFE_INTEGER + 1, 2)).toThrow(RangeError);
+    expect(() => splitInstallments(1e300, 3)).toThrow(RangeError);
+  });
+
+  it("приймає найбільше безпечне ціле як суму", () => {
+    const parts = splitInstallments(Number.MAX_SAFE_INTEGER, 1);
+    expect(parts).toEqual([Number.MAX_SAFE_INTEGER]);
   });
 
   it("приймає рівно MAX_INSTALLMENTS платежів", () => {

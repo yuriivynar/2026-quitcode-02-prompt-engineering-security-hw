@@ -38,10 +38,11 @@ contract, and rank the findings by what they cost in production.
     within `0..100`; and the **computed total** a safe integer, which catches the
     overflow that finite inputs can still produce.
   - `splitInstallments`: `parts` an integer within `1..MAX_INSTALLMENTS` (the
-    bound is an allocation guard, not only a business rule); `totalCents` an integer.
+    bound is an allocation guard, not only a business rule); `totalCents` a **safe**
+    integer, because past `Number.MAX_SAFE_INTEGER` the split arithmetic drifts.
   - `formatMoney`: `cents` finite. Fractional cents are accepted **by design** and
     rounded — that is the documented contract, not a defect.
-- Existing coverage: `app/src/quote.test.ts` — 38 tests, green today
+- Existing coverage: `app/src/quote.test.ts` — 40 tests, green today
   (`cd app && npm test`; `cd app && npm run typecheck` also exists). Green is the
   baseline, so every finding is by definition something these tests fail to assert.
 - Domain: amounts are integer cents; a split must sum to exactly the total;

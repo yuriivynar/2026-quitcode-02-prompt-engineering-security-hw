@@ -50,8 +50,31 @@ change, not a refactor; the open column above → the backlog for `add-tests.md`
 ## Scope discipline
 
 `git status --porcelain` captured before and after. The agent reported the two
-outputs as **not** a literal byte-match: one extra line, `?? prompts/runs/`,
-created at 21:03 by a different agent running concurrently, before its own first
-command at 21:04. It flagged the delta rather than presenting the outputs as
-identical, and confirmed `app/src/quote.ts` unchanged by md5. Both safety nets
-green: 22/22 tests, `tsc --noEmit` exit 0.
+outputs as **not** a literal byte-match and flagged the delta rather than
+presenting them as identical. As reported by the run:
+
+```
+$ git status --porcelain   # before, 21:04
+ M app/src/quote.test.ts
+ M app/src/quote.ts
+```
+
+```
+$ git status --porcelain   # after
+ M app/src/quote.test.ts
+ M app/src/quote.ts
+?? prompts/runs/
+```
+
+The single added line is `?? prompts/runs/`, created at 21:03 by a **different**
+agent running concurrently — before this run's own first command at 21:04 — so
+it is not attributable to the refactor run. `app/src/quote.ts` was confirmed
+unchanged by md5, and both safety nets were green: 22/22 tests, `tsc --noEmit`
+exit 0.
+
+These two blocks are reconstructed from the agent's report of the delta, not
+copied from a saved terminal transcript: the session was not captured. The
+`?? prompts/runs/` line and the md5 result are quoted from that report verbatim;
+the two ` M ` lines are the tree state the baseline note records. Flagged here
+for the same reason as in `runs/debug-failing-test.md` — a run log that cannot
+point at its own stdout is weaker evidence than one that can.

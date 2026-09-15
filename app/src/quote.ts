@@ -52,7 +52,10 @@ export function estimateTotalCents(input: QuoteInput): number {
 /**
  * Розбити суму на `parts` платежів (у центах).
  * Кидає `RangeError`, якщо `parts` не є цілим числом у межах
- * `1..MAX_INSTALLMENTS` або якщо `totalCents` не є цілим числом центів.
+ * `1..MAX_INSTALLMENTS` або якщо `totalCents` не є БЕЗПЕЧНИМ цілим числом
+ * центів: понад `Number.MAX_SAFE_INTEGER` ціле арифметично більше не точне,
+ * тож `base * parts` і сам залишок мовчки поїхали б, ламаючи інваріант
+ * точної суми — саме той, заради якого ця функція існує.
  * Повертає масив довжиною `parts`, сума якого ТОЧНО дорівнює `totalCents`:
  * залишок від ділення розкидається по одному центу на перші платежі, тож
  * платежі відрізняються не більше ніж на 1 цент.
@@ -63,8 +66,10 @@ export function splitInstallments(totalCents: number, parts: number): number[] {
       `parts must be a positive integer within 1..${MAX_INSTALLMENTS}, got ${parts}`,
     );
   }
-  if (!Number.isInteger(totalCents)) {
-    throw new RangeError(`totalCents must be an integer number of cents, got ${totalCents}`);
+  if (!Number.isSafeInteger(totalCents)) {
+    throw new RangeError(
+      `totalCents must be a safe integer number of cents, got ${totalCents}`,
+    );
   }
   const base = Math.trunc(totalCents / parts);
   const remainder = totalCents - base * parts;

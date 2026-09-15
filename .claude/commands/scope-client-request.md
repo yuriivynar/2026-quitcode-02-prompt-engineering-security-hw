@@ -12,8 +12,13 @@ Arguments: $ARGUMENTS
 ## Steps
 
 1. If no path was given, reply `usage: /scope-client-request <path> [rate-cents]` and stop.
-2. **Pre-flight, alone and first:** run `bash .claude/scripts/sanitize-scan.sh <path>`
-   as the **only** tool call of this step. Do not batch a Read of the request
+2. **Pre-flight, alone and first.** The path is operator input interpolated into
+   a command line, so check it before running anything: if it contains any
+   character outside `[A-Za-z0-9._/-]`, reply
+   `refusing: path contains shell metacharacters` and stop — `;`, `|`, `&`,
+   `$(`, a backtick or a newline in a path would execute as a second command.
+   Otherwise run `bash .claude/scripts/sanitize-scan.sh '<path>'` — **single-quoted**
+   — as the **only** tool call of this step. Do not batch a Read of the request
    with it, and wait for the result. Then gate on the printed `RESULT:` line,
    **not** on the exit code — the scanner exits `0` for both `REVIEW` and
    `CLEAN`, so an exit-code check alone would let a `REVIEW` file through:

@@ -8,8 +8,8 @@
 
 | Промпт | Напрям | Що робить | Перевірено на | Слід запуску |
 |---|---|---|---|---|
-| [`review-pr.md`](./review-pr.md) | рев'ю | Рев'ю дифу перед мержем (приклад-планка від авторів) | `app/src/quote.ts` | — |
-| [`add-tests.md`](./add-tests.md) v3 | тести | Вичерпні unit-тести за 11 вимірами + звіт про дефекти без їх виправлення | `app/src/quote.ts`: 22 → 33 тести; на вихідному коді падають 13 | [`runs/add-tests.md`](./runs/add-tests.md) |
+| [`review-pr.md`](./review-pr.md) | рев'ю | Рев'ю дифу перед мержем (приклад-планка від авторів) | `app/src/quote.ts`: діф PR #20, 4 знахідки, жодної помилки коректності | [`runs/review-pr.md`](./runs/review-pr.md) |
+| [`add-tests.md`](./add-tests.md) v3 | тести | Вичерпні unit-тести за 11 вимірами + звіт про дефекти без їх виправлення | `app/src/quote.ts`: 22 → 33 тести (нині 40 після рев'ю CodeRabbit); на вихідному коді падають 13 | [`runs/add-tests.md`](./runs/add-tests.md) |
 | [`review-module.md`](./review-module.md) | рев'ю | Аудит цілого модуля проти його JSDoc-контракту (не дифу) | `app/src/quote.ts`: 7 порушень контракту | [`runs/review-module.md`](./runs/review-module.md) |
 | [`write-docs.md`](./write-docs.md) | документація | API-документація, де кожен приклад перевірено запуском | `app/README.md`: 10 перевірених прикладів | [`runs/write-docs.md`](./runs/write-docs.md) |
 | [`refactor-safely.md`](./refactor-safely.md) | рефакторинг | План рефакторингу з тестами як страховкою; «нічого не робити» — повноцінна відповідь | `app/src/quote.ts`: «no refactor worth doing» | [`runs/refactor-safely.md`](./runs/refactor-safely.md) |

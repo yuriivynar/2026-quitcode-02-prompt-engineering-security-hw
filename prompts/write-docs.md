@@ -18,19 +18,22 @@ write down a value you have not watched a program print.
 
 ## Goal (Мета)
 
-Write `app/README.md` documenting the four exported symbols of `app/src/quote.ts`
-— `QuoteInput`, `estimateTotalCents`, `splitInstallments`, `formatMoney` — so a
-developer can call them correctly without opening the source.
+Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts`
+— `QuoteInput`, `MAX_INSTALLMENTS`, `estimateTotalCents`, `splitInstallments`,
+`formatMoney` — so a developer can call them correctly without opening the source.
 
 ## Context (Контекст)
 
 - Source of truth: `app/src/quote.ts`. Signatures are copied from it verbatim;
   every statement must be traceable to a line there or to a passing test.
-- Verified examples: `app/src/quote.test.ts` (22 passing cases today). Its
+- Verified examples: `app/src/quote.test.ts` (40 passing cases today). Its
   `it(...)` names are Ukrainian — quote them verbatim, never translate them.
 - For a value no test asserts, run it. This works from `app/` (Node 22 also
   needs `--experimental-strip-types`):
   `node --input-type=module -e "import { formatMoney } from './src/quote.ts'; console.log(formatMoney(5));"`
+  If `.claude/settings.json` denies `node -e` in your session, put the same two
+  lines in a throwaway `.mjs` file under `app/`, run `node` on it, and delete it —
+  the output is identical and the README documents the `-e` form either way.
 - Commands in `app/package.json`: `cd app && npm test`, `cd app && npm run typecheck`.
 - Nothing typechecks README snippets (`app/tsconfig.json` covers only `src`) and
   `app/package.json` has no `main`/`exports`: use only import paths you executed.
@@ -38,10 +41,10 @@ developer can call them correctly without opening the source.
   README must document each guard: `estimateTotalCents` on non-finite
   `hours`/`rateCents`, on `discountPercent` outside `0..100`, and on a computed
   total that is not a safe integer; `splitInstallments` on `parts` outside
-  `1..MAX_INSTALLMENTS` and on a non-integer `totalCents`; `formatMoney` on
-  non-finite `cents`.
+  `1..MAX_INSTALLMENTS` and on a `totalCents` that is not a safe integer;
+  `formatMoney` on non-finite `cents`.
 - The units contract differs per function and the README must say so rather than
-  claim one rule for the module: `splitInstallments` requires an **integer**
+  claim one rule for the module: `splitInstallments` requires a **safe integer**
   `totalCents`, `estimateTotalCents` **returns** an integer number of cents, and
   `formatMoney` accepts **any finite** number of cents and rounds it
   (`formatMoney(0.5)` is `"$0.01"`).

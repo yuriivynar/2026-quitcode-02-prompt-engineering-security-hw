@@ -48,7 +48,7 @@ coverage. `QuoteInput` is type-only — it is covered by `npm run typecheck`.
 input today and throw `RangeError` — `estimateTotalCents` on non-finite
 `hours`/`rateCents`, on `discountPercent` outside `0..100`, and on a computed
 total that is not a safe integer; `splitInstallments` on `parts` outside
-`1..MAX_INSTALLMENTS` and on a non-integer `totalCents`; `formatMoney` on
+`1..MAX_INSTALLMENTS` and on a `totalCents` that is not a safe integer; `formatMoney` on
 non-finite `cents`. Those throws are documented in the JSDoc, so asserting them
 is pinning a spec, not inventing one.
 

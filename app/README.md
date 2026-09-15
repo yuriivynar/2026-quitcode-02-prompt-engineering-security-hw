@@ -25,7 +25,7 @@ before you pass a computed value:
 | Function | Accepts | Returns |
 | --- | --- | --- |
 | `estimateTotalCents` | `hours` and `rateCents` may be fractional; both must be finite | an integer number of cents, and a `RangeError` rather than a total outside the safe-integer range |
-| `splitInstallments` | `totalCents` **must be an integer**; a fractional total throws | an array of integer cents summing exactly to `totalCents` |
+| `splitInstallments` | `totalCents` **must be a safe integer**; a fractional or unsafe total throws | an array of integer cents summing exactly to `totalCents` |
 | `formatMoney` | **any** finite number of cents, fractional included | a display string; fractional cents are rounded to the nearest cent, so `formatMoney(0.5)` is `"$0.01"` |
 
 So "integer cents" is a hard precondition only for `splitInstallments`, and a
@@ -179,7 +179,7 @@ The upper bound exists because `parts` is an allocation size: without it,
 `splitInstallments(100000, 4_294_967_295)` passes the "positive integer" check
 and then asks `Array.from` for four billion elements, hanging the process or
 exhausting memory. It also throws `RangeError` when
-`totalCents` is not an integer (including `NaN`/`±Infinity`), because a fractional total cannot be split into whole cents that sum back exactly. `it("відхиляє некоректну кількість платежів")` covers `parts` of `0`, `-3` and
+`totalCents` is not a **safe** integer (including `NaN`/`±Infinity`), because a fractional total cannot be split into whole cents that sum back exactly, and above `Number.MAX_SAFE_INTEGER` integer arithmetic is no longer exact — `base * parts` and the remainder would drift silently, breaking the very invariant this function exists to hold. `it("відхиляє некоректну кількість платежів")` covers `parts` of `0`, `-3` and
 `2.5`; `it("відхиляє дробову суму, яка ламала інваріант точної суми")` and `it("відхиляє NaN та нескінченну суму")` cover `totalCents`.
 
 Example — a total that divides evenly:
@@ -297,7 +297,7 @@ instead of returning a wrong amount. Summary of the guards:
 | `estimateTotalCents` | non-finite `hours` or `rateCents` | would produce a `NaN` total that propagates downstream |
 | `splitInstallments` | `parts` not an integer in `1..MAX_INSTALLMENTS` | below `1`, an array of that length cannot exist; above `MAX_INSTALLMENTS`, the allocation would exhaust memory |
 | `estimateTotalCents` | a computed total outside the safe-integer range | finite inputs can still overflow in `hours * rateCents`; `{ hours: Number.MAX_VALUE, rateCents: 2, discountPercent: 100 }` used to return `NaN` |
-| `splitInstallments` | `totalCents` not an integer | a fractional total cannot sum back exactly (`100.5` gave a sum of `101`) |
+| `splitInstallments` | `totalCents` not a safe integer | a fractional total cannot sum back exactly (`100.5` gave a sum of `101`); above `Number.MAX_SAFE_INTEGER` the split arithmetic silently loses precision |
 | `formatMoney` | `NaN`, `±Infinity` | would print `"$NaN.NaN"` on a client document |
 
 Still accepted and **not** a contract: negative `hours` (the doc comment sets no
@@ -316,7 +316,7 @@ cd app && npm run typecheck
 ```
 
 In this checkout `npm test` (vitest v5.0.0) reported **Test Files 1 passed (1)**
-and **Tests 38 passed (38)**, all from `app/src/quote.test.ts`, and exited `0`.
+and **Tests 40 passed (40)**, all from `app/src/quote.test.ts`, and exited `0`.
 `npm run typecheck` (`tsc --noEmit`) reported no errors and exited `0`.
 
 The test names are Ukrainian. They are quoted verbatim throughout this document
