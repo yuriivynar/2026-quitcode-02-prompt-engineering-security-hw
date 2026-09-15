@@ -7,6 +7,14 @@
  * промптом з acceptance criteria (Task A).
  */
 
+/**
+ * Документована межа бізнес-логіки: план розстрочки не може мати більше
+ * платежів, ніж 10 років щомісячних внесків. Без цієї межі `splitInstallments`
+ * прийняв би, напр., `4_294_967_295` і спробував би виділити масив на мільярди
+ * елементів — процес завис би або вичерпав пам’ять.
+ */
+export const MAX_INSTALLMENTS = 120;
+
 export interface QuoteInput {
   /** Оцінка робіт у годинах */
   hours: number;
@@ -17,9 +25,11 @@ export interface QuoteInput {
 }
 
 /**
- * Ціна проєкту в центах з урахуванням знижки.
- * Кидає `RangeError`, якщо `hours`/`rateCents` не є скінченними числами
- * або якщо `discountPercent` виходить за документовані межі `0..100` —
+ * Ціна проєкту в центах з урахуванням знижки. Повертає ЦІЛЕ число центів.
+ * Кидає `RangeError`, якщо `hours`/`rateCents` не є скінченними числами,
+ * якщо `discountPercent` виходить за документовані межі `0..100`, або якщо
+ * сам результат не є безпечним цілим (`Number.isSafeInteger`) — скінченні
+ * входи ще можуть переповнитись у проміжному добутку і дати `Infinity`/`NaN`,
  * інакше помилка вводу тихо перетворюється на від'ємний або завищений рахунок.
  */
 export function estimateTotalCents(input: QuoteInput): number {
@@ -32,18 +42,26 @@ export function estimateTotalCents(input: QuoteInput): number {
   }
   const gross = hours * rateCents;
   const discount = (gross * discountPercent) / 100;
-  return Math.round(gross - discount);
+  const totalCents = Math.round(gross - discount);
+  if (!Number.isSafeInteger(totalCents)) {
+    throw new RangeError(`total must be a safe integer number of cents, got ${totalCents}`);
+  }
+  return totalCents;
 }
 
 /**
  * Розбити суму на `parts` платежів (у центах).
+ * Кидає `RangeError`, якщо `parts` не є цілим числом у межах
+ * `1..MAX_INSTALLMENTS` або якщо `totalCents` не є цілим числом центів.
  * Повертає масив довжиною `parts`, сума якого ТОЧНО дорівнює `totalCents`:
  * залишок від ділення розкидається по одному центу на перші платежі, тож
  * платежі відрізняються не більше ніж на 1 цент.
  */
 export function splitInstallments(totalCents: number, parts: number): number[] {
-  if (!Number.isInteger(parts) || parts < 1) {
-    throw new RangeError(`parts must be a positive integer, got ${parts}`);
+  if (!Number.isInteger(parts) || parts < 1 || parts > MAX_INSTALLMENTS) {
+    throw new RangeError(
+      `parts must be a positive integer within 1..${MAX_INSTALLMENTS}, got ${parts}`,
+    );
   }
   if (!Number.isInteger(totalCents)) {
     throw new RangeError(`totalCents must be an integer number of cents, got ${totalCents}`);

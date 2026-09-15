@@ -1,22 +1,36 @@
 # `quote.ts` — API reference
 
 `app/src/quote.ts` estimates the price of a project, splits that price into
-installments, and formats an amount for display. It exports exactly four
+installments, and formats an amount for display. It exports exactly five
 symbols, all documented here:
 
 - [`QuoteInput`](#quoteinput) — the input object of the estimate
+- [`MAX_INSTALLMENTS`](#max_installments) — upper bound on the number of payments
 - [`estimateTotalCents`](#estimatetotalcents) — price of the project
 - [`splitInstallments`](#splitinstallments) — price into N payments
 - [`formatMoney`](#formatmoney) — cents into a display string
 
 There is no default export and no configuration.
 
-## Amounts are integer cents, never dollars
+## Amounts are cents, never dollars
 
-Every amount this module accepts and returns is a whole number of cents.
-`5000` is $50.00, and $50.00 passed as `50` is fifty cents. Convert dollars to
-cents before you call anything here: no function in the module takes or returns
-a dollar amount. This is the rule that costs money at 2am if you miss it.
+Every amount this module accepts and returns is in cents. `5000` is $50.00, and
+$50.00 passed as `50` is fifty cents. Convert dollars to cents before you call
+anything here: no function in the module takes or returns a dollar amount. This
+is the rule that costs money at 2am if you miss it.
+
+Whether *fractional* cents are allowed differs per function, so read this row
+before you pass a computed value:
+
+| Function | Accepts | Returns |
+| --- | --- | --- |
+| `estimateTotalCents` | `hours` and `rateCents` may be fractional; both must be finite | an integer number of cents, and a `RangeError` rather than a total outside the safe-integer range |
+| `splitInstallments` | `totalCents` **must be an integer**; a fractional total throws | an array of integer cents summing exactly to `totalCents` |
+| `formatMoney` | **any** finite number of cents, fractional included | a display string; fractional cents are rounded to the nearest cent, so `formatMoney(0.5)` is `"$0.01"` |
+
+So "integer cents" is a hard precondition only for `splitInstallments`, and a
+guaranteed postcondition of `estimateTotalCents`. `formatMoney` is deliberately
+lenient because it is the display end of the pipeline.
 
 ## Running the examples
 
@@ -66,6 +80,23 @@ node --input-type=module -e "import { estimateTotalCents } from './src/quote.ts'
 45000
 ```
 
+## `MAX_INSTALLMENTS`
+
+```ts
+export const MAX_INSTALLMENTS = 120;
+```
+
+The largest number of payments `splitInstallments` will produce — ten years of
+monthly instalments. It is exported so a caller can validate a user-supplied
+payment count *before* calling, and so a test can assert the boundary without
+hard-coding `120`.
+
+This is a business limit doing double duty as a safety limit: `parts` is an
+allocation size, so an unbounded "positive integer" check would let
+`splitInstallments(100000, 4_294_967_295)` reach `Array.from` and exhaust
+memory. Asserted by `it("відхиляє кількість платежів понад документовану межу до
+виділення масиву")` and `it("приймає рівно MAX_INSTALLMENTS платежів")`.
+
 ## `estimateTotalCents`
 
 ```ts
@@ -80,9 +111,24 @@ asserts the integer result for three further inputs.
 **Units** — in: hours and cents per hour, through `QuoteInput`; out: cents.
 
 **Computation**, as written in the source: `gross = hours * rateCents`,
-`discount = (gross * discountPercent) / 100`, result `Math.round(gross - discount)`.
+`discount = (gross * discountPercent) / 100`, result `Math.round(gross - discount)`,
+which is then checked with `Number.isSafeInteger` before it is returned.
 
 **Throws** `RangeError` when `hours` or `rateCents` is not finite, or when `discountPercent` is outside `0..100` or `NaN` — asserted by `it("відхиляє знижку поза документованими межами 0..100")` and `it("відхиляє нескінченні або NaN години й ставку замість тихого NaN")`. `0` and `100` are accepted: `it("приймає межові знижки 0 і 100")`.
+
+It **also** throws `RangeError` when the computed total is not a safe integer.
+Finite inputs are not enough: `hours * rateCents` can overflow to `Infinity`,
+and `Infinity - Infinity` is `NaN`, so
+`{ hours: Number.MAX_VALUE, rateCents: 2, discountPercent: 100 }` returned `NaN`
+before this guard. Now:
+
+```
+RangeError: total must be a safe integer number of cents, got NaN
+```
+
+Asserted by `it("відхиляє переповнення у проміжному добутку замість тихого NaN")`,
+`it("відхиляє суму поза межами безпечного цілого")` and
+`it("приймає найбільшу суму, яка ще є безпечним цілим")`.
 
 Example — ten hours at $50.00 per hour, no discount:
 
@@ -124,9 +170,15 @@ over seven cases, the one-cent spread by
 **Negative totals** (refunds) are split the same way, the extra cent going to
 the first payments: `it("від'ємна сума (повернення) ділиться так само коректно")`.
 
-**Throws** `RangeError` when `parts` is not a positive integer — that is, when
-`Number.isInteger(parts)` is false or `parts < 1`. The message is built as
-`parts must be a positive integer, got ${parts}`. It also throws `RangeError` when
+**Throws** `RangeError` when `parts` is not an integer in `1..MAX_INSTALLMENTS`
+— that is, when `Number.isInteger(parts)` is false, `parts < 1`, or
+`parts > MAX_INSTALLMENTS`. The message is built as
+`parts must be a positive integer within 1..${MAX_INSTALLMENTS}, got ${parts}`.
+`MAX_INSTALLMENTS` is exported and is `120` — ten years of monthly payments.
+The upper bound exists because `parts` is an allocation size: without it,
+`splitInstallments(100000, 4_294_967_295)` passes the "positive integer" check
+and then asks `Array.from` for four billion elements, hanging the process or
+exhausting memory. It also throws `RangeError` when
 `totalCents` is not an integer (including `NaN`/`±Infinity`), because a fractional total cannot be split into whole cents that sum back exactly. `it("відхиляє некоректну кількість платежів")` covers `parts` of `0`, `-3` and
 `2.5`; `it("відхиляє дробову суму, яка ламала інваріант точної суми")` and `it("відхиляє NaN та нескінченну суму")` cover `totalCents`.
 
@@ -168,7 +220,17 @@ node --input-type=module -e "import { splitInstallments } from './src/quote.ts';
 ```
 
 ```
-RangeError: parts must be a positive integer, got 0
+RangeError: parts must be a positive integer within 1..120, got 0
+```
+
+Example — the upper bound:
+
+```bash
+node --input-type=module -e "import { splitInstallments } from './src/quote.ts'; try { splitInstallments(100, 121); } catch (err) { console.log(err.name + ': ' + err.message); }"
+```
+
+```
+RangeError: parts must be a positive integer within 1..120, got 121
 ```
 
 ## `formatMoney`
@@ -233,7 +295,8 @@ instead of returning a wrong amount. Summary of the guards:
 | --- | --- | --- |
 | `estimateTotalCents` | `discountPercent` outside `0..100` or `NaN` | `150` would produce a negative invoice, `-50` a silent surcharge |
 | `estimateTotalCents` | non-finite `hours` or `rateCents` | would produce a `NaN` total that propagates downstream |
-| `splitInstallments` | `parts` not a positive integer | an array of that length cannot exist |
+| `splitInstallments` | `parts` not an integer in `1..MAX_INSTALLMENTS` | below `1`, an array of that length cannot exist; above `MAX_INSTALLMENTS`, the allocation would exhaust memory |
+| `estimateTotalCents` | a computed total outside the safe-integer range | finite inputs can still overflow in `hours * rateCents`; `{ hours: Number.MAX_VALUE, rateCents: 2, discountPercent: 100 }` used to return `NaN` |
 | `splitInstallments` | `totalCents` not an integer | a fractional total cannot sum back exactly (`100.5` gave a sum of `101`) |
 | `formatMoney` | `NaN`, `±Infinity` | would print `"$NaN.NaN"` on a client document |
 
@@ -253,8 +316,8 @@ cd app && npm run typecheck
 ```
 
 In this checkout `npm test` (vitest v5.0.0) reported **Test Files 1 passed (1)**
-and **Tests 33 passed (33)**, all from `app/src/quote.test.ts`.
-`npm run typecheck` (`tsc --noEmit`) reported no errors.
+and **Tests 38 passed (38)**, all from `app/src/quote.test.ts`, and exited `0`.
+`npm run typecheck` (`tsc --noEmit`) reported no errors and exited `0`.
 
 The test names are Ukrainian. They are quoted verbatim throughout this document
 and never translated, so that searching for a quoted name finds the assertion it

@@ -25,20 +25,31 @@ catch it breaking. "No refactor is worth doing" is a complete answer.
 
 - Target: `app/src/quote.ts` — 51 lines. Public API: `estimateTotalCents`,
   `splitInstallments`, `formatMoney`, and the exported interface `QuoteInput`.
-- Safety net: `app/src/quote.test.ts` — 22 `it` cases in 3 `describe` blocks, run with
+- Safety net: `app/src/quote.test.ts` — 38 `it` cases in 8 `describe` blocks, run with
   `cd app && npm test` (vitest). Second net: `cd app && npm run typecheck`
   (`tsc --noEmit`, strict) catches signature drift the suite would miss.
-- Sole in-repo consumer: `app/src/quote.test.ts`. `app/README.md` does not exist yet —
-  `prompts/write-docs.md` generates it from these signatures, so a rename desyncs a doc you cannot see.
+- In-repo consumers: `app/src/quote.test.ts`, and `app/README.md`, which
+  `prompts/write-docs.md` generated from these signatures and which quotes error
+  message text verbatim — so a rename or a reworded `RangeError` desyncs the doc
+  as well as the suite. Check both.
 - Domain: integer cents, exact sums, no cent invented or lost.
+- **Now pinned by tests, and also by `app/README.md`** — changing any of it breaks
+  a red test *and* a documented example, so treat it as contract, not as a wire:
+  - `estimateTotalCents` throws `RangeError` on non-finite `hours`/`rateCents`, on
+    `discountPercent` outside `0..100`, and on a computed total that is not a safe
+    integer.
+  - `splitInstallments` throws `RangeError` on `parts` outside
+    `1..MAX_INSTALLMENTS` and on a non-integer `totalCents`.
+  - `formatMoney` throws `RangeError` on non-finite `cents`, and **rounds**
+    fractional cents: `formatMoney(0.5)` is `"$0.01"`.
 - **Live wires — real behaviour that no test pins**, so none of it may change:
-  - `estimateTotalCents`: negative `hours`, negative or above-100 `discountPercent`,
-    non-integer `rateCents`, and the `-0` that `Math.round` returns
+  - `estimateTotalCents`: negative `hours` (no documented range), non-integer
+    `rateCents`, and the `-0` that `Math.round` returns
     (`{ hours: -1, rateCents: 1, discountPercent: 50 }` gives `-0`, not `0`).
-  - `splitInstallments`: the `RangeError` message text — only the error *type* is
-    asserted, at `app/src/quote.test.ts:100`.
-  - `formatMoney`: non-integer input (`formatMoney(0.5)` is `"$0.0.5"`),
-    `formatMoney(-0)` is `"$0.00"`, and grouping is hard-coded `"en-US"`.
+  - The `RangeError` **message text** of all three functions — the suite asserts
+    only the error *type*, but `app/README.md` quotes the messages verbatim.
+  - `formatMoney`: `formatMoney(-0)` is `"$0.00"`, `formatMoney(-0.4)` is
+    `"-$0.00"`, and grouping is hard-coded `"en-US"`.
 - Conventions: `AGENTS.md`. Source comments are Ukrainian — keep them Ukrainian.
 
 ## Constraints (Обмеження)

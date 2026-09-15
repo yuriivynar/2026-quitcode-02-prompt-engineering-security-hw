@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { estimateTotalCents, formatMoney, splitInstallments } from "./quote.js";
+import {
+  MAX_INSTALLMENTS,
+  estimateTotalCents,
+  formatMoney,
+  splitInstallments,
+} from "./quote.js";
 
 describe("estimateTotalCents", () => {
   it("рахує суму без знижки", () => {
@@ -210,5 +215,38 @@ describe("композиція estimate → split → format", () => {
     expect(parts).toEqual([24792, 24792, 24791]);
     expect(parts.reduce((a, b) => a + b, 0)).toBe(total);
     expect(parts.map(formatMoney)).toEqual(["$247.92", "$247.92", "$247.91"]);
+  });
+});
+
+describe("переповнення й межі розміру", () => {
+  it("відхиляє переповнення у проміжному добутку замість тихого NaN", () => {
+    // MAX_VALUE × 2 = Infinity; зі знижкою 100 це Infinity - Infinity = NaN.
+    expect(() =>
+      estimateTotalCents({ hours: Number.MAX_VALUE, rateCents: 2, discountPercent: 100 }),
+    ).toThrow(RangeError);
+    // Без знижки той самий добуток дає Infinity — теж не безпечне ціле.
+    expect(() => estimateTotalCents({ hours: Number.MAX_VALUE, rateCents: 2 })).toThrow(RangeError);
+  });
+
+  it("відхиляє суму поза межами безпечного цілого", () => {
+    expect(() => estimateTotalCents({ hours: 1e9, rateCents: 1e9 })).toThrow(RangeError);
+  });
+
+  it("приймає найбільшу суму, яка ще є безпечним цілим", () => {
+    expect(estimateTotalCents({ hours: Number.MAX_SAFE_INTEGER, rateCents: 1 })).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
+
+  it("відхиляє кількість платежів понад документовану межу до виділення масиву", () => {
+    expect(() => splitInstallments(100000, MAX_INSTALLMENTS + 1)).toThrow(RangeError);
+    // Значення, яке проходило перевірку "додатне ціле" і вичерпувало пам'ять.
+    expect(() => splitInstallments(100000, 4_294_967_295)).toThrow(RangeError);
+  });
+
+  it("приймає рівно MAX_INSTALLMENTS платежів", () => {
+    const parts = splitInstallments(100000, MAX_INSTALLMENTS);
+    expect(parts).toHaveLength(MAX_INSTALLMENTS);
+    expect(parts.reduce((a, b) => a + b, 0)).toBe(100000);
   });
 });

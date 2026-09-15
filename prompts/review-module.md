@@ -23,16 +23,25 @@ contract, and rank the findings by what they cost in production.
 
 ## Context (Контекст)
 
-- Target: `app/src/quote.ts`. It has exactly four exports — audit all four:
-  `QuoteInput`, `estimateTotalCents`, `splitInstallments`, `formatMoney`.
+- Target: `app/src/quote.ts`. It has exactly five exports — audit all five:
+  `QuoteInput`, `MAX_INSTALLMENTS`, `estimateTotalCents`, `splitInstallments`,
+  `formatMoney`.
 - The contract is the JSDoc above each symbol plus its TypeScript types.
   Where code and doc disagree, **the doc is the contract** and the code is wrong.
   Two clauses to audit against verbatim: `discountPercent` is documented as
   `0..100`, and `splitInstallments` is documented to return `parts` values whose
   sum is EXACTLY `totalCents`, differing by at most 1 cent.
-- The module validates `parts` and nothing else: no export checks that an amount
-  is an integer, is finite, or is inside its documented range.
-- Existing coverage: `app/src/quote.test.ts` — 22 tests, green today
+- Every function now validates its own input and throws `RangeError` rather than
+  returning a wrong amount. The guards in place today, so that you report what is
+  still missing rather than re-reporting these:
+  - `estimateTotalCents`: `hours`/`rateCents` finite; `discountPercent` finite and
+    within `0..100`; and the **computed total** a safe integer, which catches the
+    overflow that finite inputs can still produce.
+  - `splitInstallments`: `parts` an integer within `1..MAX_INSTALLMENTS` (the
+    bound is an allocation guard, not only a business rule); `totalCents` an integer.
+  - `formatMoney`: `cents` finite. Fractional cents are accepted **by design** and
+    rounded — that is the documented contract, not a defect.
+- Existing coverage: `app/src/quote.test.ts` — 38 tests, green today
   (`cd app && npm test`; `cd app && npm run typecheck` also exists). Green is the
   baseline, so every finding is by definition something these tests fail to assert.
 - Domain: amounts are integer cents; a split must sum to exactly the total;
@@ -62,7 +71,7 @@ contract, and rank the findings by what they cost in production.
 
 ## Acceptance criteria
 
-- [ ] All four exports appear in the Audited table, including the ones with no findings.
+- [ ] All five exports appear in the Audited table, including the ones with no findings.
 - [ ] Each finding has: `file:line` pointing at the current contents of
       `app/src/quote.ts`, the exact input, expected vs actual, and the business
       consequence in one clause (who loses money or trust).

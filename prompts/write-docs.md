@@ -34,8 +34,19 @@ developer can call them correctly without opening the source.
 - Commands in `app/package.json`: `cd app && npm test`, `cd app && npm run typecheck`.
 - Nothing typechecks README snippets (`app/tsconfig.json` covers only `src`) and
   `app/package.json` has no `main`/`exports`: use only import paths you executed.
-- `splitInstallments` is the only function that throws (`RangeError`, when
-  `parts` is not a positive integer). Nothing else validates its input.
+- All three functions throw `RangeError` on out-of-contract input, and the
+  README must document each guard: `estimateTotalCents` on non-finite
+  `hours`/`rateCents`, on `discountPercent` outside `0..100`, and on a computed
+  total that is not a safe integer; `splitInstallments` on `parts` outside
+  `1..MAX_INSTALLMENTS` and on a non-integer `totalCents`; `formatMoney` on
+  non-finite `cents`.
+- The units contract differs per function and the README must say so rather than
+  claim one rule for the module: `splitInstallments` requires an **integer**
+  `totalCents`, `estimateTotalCents` **returns** an integer number of cents, and
+  `formatMoney` accepts **any finite** number of cents and rounds it
+  (`formatMoney(0.5)` is `"$0.01"`).
+- `MAX_INSTALLMENTS` is exported and must get its own section: it is a business
+  limit (ten years of monthly payments) that doubles as an allocation guard.
 - Audience: a TypeScript developer who knows the language but not this domain.
   They need to know that amounts are integer cents *before* they pass dollars.
 - `AGENTS.md` allows Ukrainian or English docs; this prompt fixes English for
@@ -43,8 +54,9 @@ developer can call them correctly without opening the source.
 
 ## Constraints (Обмеження)
 
-- **Only `app/README.md` is created** — it does not exist yet: create, never
-  append. No other file is written, moved or deleted: no scratch script, no fix.
+- **Only `app/README.md` is written.** It now exists (this prompt generated it):
+  regenerate it in full and overwrite, never append a second copy of a section.
+  No other file is written, moved or deleted: no scratch script, no fix.
 - Document only exported symbols. Private helpers are not part of the contract.
 - Every expected output comes from exactly one of two sources: an assertion in
   `app/src/quote.test.ts`, cited by its `it(...)` name, or a command you ran and
@@ -72,15 +84,24 @@ developer can call them correctly without opening the source.
 - [ ] `cd app && npm test` was actually run in this session and its real file
       and test counts are reported.
 - [ ] Every import line used in an example is one that was actually executed.
-- [ ] The integer-cents rule is stated once, above the first example.
+- [ ] The cents rule is stated once, above the first example, **per function** —
+      `splitInstallments` requires integer `totalCents`, `estimateTotalCents`
+      returns integer cents, `formatMoney` accepts any finite cents and rounds.
+      A blanket "every amount is a whole number of cents" is wrong and fails this box.
+- [ ] Every guard is documented with its trigger: the three `RangeError` cases of
+      `estimateTotalCents` (non-finite `hours`/`rateCents`, `discountPercent`
+      outside `0..100`, computed total not a safe integer), the two of
+      `splitInstallments` (`parts` outside `1..MAX_INSTALLMENTS`, non-integer
+      `totalCents`), and the one of `formatMoney` (non-finite `cents`).
+- [ ] `MAX_INSTALLMENTS` has its own section stating both its business meaning
+      and that it bounds an allocation.
 - [ ] A "Known gaps" section marks as undefined/unguarded at least these four:
-      `discountPercent` outside 0..100, non-integer `totalCents` in
-      `splitInstallments`, non-integer cents in `formatMoney`, `NaN`/`Infinity`.
-- [ ] The `RangeError` of `splitInstallments` is documented with its trigger,
-      and no other function is described as validating or throwing.
+      negative `hours`, the `-0` result of `estimateTotalCents`, `"-$0.00"` for a
+      sub-half-cent negative in `formatMoney`, and the hard-coded `"en-US"`
+      grouping. Do **not** list the four guarded cases here — they are contract now.
 - [ ] The README is in English apart from test names quoted verbatim.
-- [ ] `git status --porcelain` after the run shows `?? app/README.md` and no
-      entry that was not already present before the run.
+- [ ] `git status --porcelain` after the run shows `app/README.md` as the only
+      path this run touched, and no entry that was not already present before it.
 
 ## Response format (Формат відповіді)
 

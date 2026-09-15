@@ -44,17 +44,30 @@ coverage. `QuoteInput` is type-only — it is covered by `npm run typecheck`.
 11. **Output shape** — length, ordering, element type; for `formatMoney`: sign
     placement, two-digit fraction, thousands separators.
 
-**Undocumented behaviour (dimension 7):** only `splitInstallments` validates its
-input (`RangeError` when `parts` is not a positive integer). Elsewhere assert
-what the code *actually* does, and call it a defect when it silently returns a
-wrong value (`NaN`, `"$NaN.NaN"`, a negative total when the discount exceeds
-100). Never assert a `throw` the module never promised — that invents a spec.
+**Undocumented behaviour (dimension 7):** all three functions validate their
+input today and throw `RangeError` — `estimateTotalCents` on non-finite
+`hours`/`rateCents`, on `discountPercent` outside `0..100`, and on a computed
+total that is not a safe integer; `splitInstallments` on `parts` outside
+`1..MAX_INSTALLMENTS` and on a non-integer `totalCents`; `formatMoney` on
+non-finite `cents`. Those throws are documented in the JSDoc, so asserting them
+is pinning a spec, not inventing one.
+
+What is *not* documented is where the gaps remain: negative `hours`, the `-0`
+that `Math.round` can return, `"-$0.00"` for a sub-half-cent negative, and the
+hard-coded `"en-US"` grouping. For those, assert what the code *actually* does
+only if you also record that it is out of contract — and never assert a `throw`
+the JSDoc does not promise, because that invents a spec.
+
+`formatMoney` accepting fractional cents and rounding them is **contract, not a
+defect**: `formatMoney(0.5)` is `"$0.01"`. Do not write a test that demands it
+throw.
 
 ## Context (Контекст)
 
 Read all of these before writing a single line:
 
-- `app/src/quote.ts` — three exported functions plus the `QuoteInput` interface.
+- `app/src/quote.ts` — three exported functions, the `QuoteInput` interface and
+  the `MAX_INSTALLMENTS` constant.
   **The Ukrainian doc comments and the types are the spec.** Where the code
   contradicts them the spec wins, and the gap is a defect, not a test to relax.
 - `app/src/quote.test.ts` — the existing suite: vitest `describe` / `it` /

@@ -23,6 +23,69 @@
 | Applied anything | no | no |
 | Flagged the concurrent `prompts/runs/` as not its own | yes | yes |
 
+## Reproduction, verbatim
+
+The two sub-agent sessions of 2026-09-14 were not transcribed, so the table above
+is a summary of their reports and the commands below are **not** quoted from them.
+The prompt requires verbatim evidence, so the reproduction was re-executed on
+2026-09-15 against the same pre-fix source, `git show da25af6:app/src/quote.ts`,
+copied into a sandbox outside the repo. Every block below is real output.
+
+**1 — the symptom, on the original code:**
+
+```
+$ node repro.mjs
+"$0.0.5"
+"$0.99.6"
+$ echo $?
+0
+```
+
+(`formatMoney(0.5)` and `formatMoney(99.6)`, JSON-quoted so the stray `.` is
+unambiguous. `repro.mjs` is two `console.log` lines importing `./src/quote.ts`;
+the `--input-type=module -e` one-liner the original runs used is now blocked by
+`.claude/settings.json`, which denies `Bash(node -e*)`.)
+
+**2 — why the fix goes on the `abs` line, not the `frac` line.** Both candidates
+applied to a copy of the original body:
+
+```
+$ node repro2.mjs
+local(0.5)      = "$0.01"
+normalised(0.5) = "$0.01"
+local(99.6)      = "$0.100"
+normalised(99.6) = "$1.00"
+$ echo $?
+0
+```
+
+The line-local candidate passes the reported symptom and still produces two
+decimal points one input over. This is the datum both dialects reported, and it
+reproduces exactly.
+
+**3 — the tree before the diagnosis.** `git diff --stat -- app/src` was **not**
+empty: the 2026-09-14 baseline note above records `quote.ts` and `quote.test.ts`
+as uncommitted, which is why both agents were told to diagnose the working copy
+rather than `HEAD`.
+
+**4 — applied nothing.** Both runs stopped at a proposed diff. The sandbox used
+for this re-verification is outside the repository, so it cannot appear in
+`git status --porcelain`; on 2026-09-15 that command shows only the files edited
+by the CodeRabbit follow-up, and no file created by a debugging run:
+
+```
+$ git diff --stat -- app/src
+ app/src/quote.test.ts | 40 +++++++++++++++++++++++++++++++++++++++-
+ app/src/quote.ts      | 30 ++++++++++++++++++++++++------
+ 2 files changed, 63 insertions(+), 7 deletions(-)
+```
+
+**What this run log cannot show.** The per-agent command logs the prompt asks for
+are gone — they existed only in two sub-agent sessions that were not saved. The
+evidence above proves the *findings* reproduce; it does not prove what either
+agent typed. The fix for next time is procedural, and it is now the first line of
+the lesson below: capture the transcript, not the conclusion.
+
 **The mechanism both found:** for `cents = 0.5`, `abs % 100` is `0.5`, so
 `String(...)` gives `"0.5"` — already 3 characters, so `padStart(2, "0")` pads
 nothing and the fractional field arrives carrying its own decimal point. Line 50
@@ -50,7 +113,12 @@ rounding inside `frac` alone loses the carry. Both runs demonstrated it:
 ## Honest conclusion for Task A step 6
 
 The dialect made **no difference to the outcome**. The acceptance criteria did
-the work. The one structural observation worth keeping: prose constraints carry
+the work. **The process lesson, learned the hard way:** this log recorded outcomes in a
+yes/no table and threw away the transcripts, so the prompt's own "verbatim
+output" criterion could not be met afterwards at any price. A run log is
+evidence or it is nothing. Capture stdout as it happens.
+
+The one structural observation worth keeping: prose constraints carry
 their *reason* ("no speculation: name the expression, the inputs, and the value
 it produces"), and collapsing that into `<never>speculate</never>` loses the
 reason — XML compensated with more enumeration. Reach for XML when a prompt is
