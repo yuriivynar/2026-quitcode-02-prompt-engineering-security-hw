@@ -119,8 +119,11 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
       sub-half-cent negative in `formatMoney`, and the hard-coded `"en-US"`
       grouping. Do **not** list the four guarded cases here — they are contract now.
 - [ ] The README is in English apart from test names quoted verbatim.
-- [ ] `git status --porcelain` after the run shows `app/README.md` as the only
-      path this run touched, and no entry that was not already present before it.
+- [ ] Capture `git status --porcelain` before the run and again after it. The
+      only difference allowed is the entry for `app/README.md` (`??` if the file
+      is new, ` M` if it already existed and was rewritten) — that entry is
+      *expected*, it is the deliverable. Every other line is identical to the
+      "before" output, so nothing else was written, moved or deleted.
 
 ## Response format (Формат відповіді)
 
@@ -159,8 +162,10 @@ verification and say which one.
   for `node -e` / `node --input-type` exists and was verified by a refused run), and
   piping code into `node` is named as a non-option; (3) acceptance criteria list all
   five symbols and say "not a safe integer" for `totalCents`; (4) `app/README.md`
-  gained the `Known gaps` section the criteria already demanded. Not re-run as a
-  full agent run — examples re-executed by hand, see `runs/write-docs.md`.
+  gained the `Known gaps` section the criteria already demanded; (5) the
+  `git status` criterion forbade any new entry, which `app/README.md` itself
+  creates — it now compares before/after and allows exactly that one entry. Not
+  re-run as a full agent run — examples re-executed by hand, see `runs/write-docs.md`.
 - **v1 history:** drafted by hand → improved by a meta-prompting sub-agent (the
   two-sources rule, the verification log, banned hedges, and a replacement for a
   `git diff --name-only` criterion that could never see a new untracked file) → run.

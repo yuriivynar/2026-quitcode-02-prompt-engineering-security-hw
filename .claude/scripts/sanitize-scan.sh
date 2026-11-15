@@ -5,7 +5,11 @@
 #
 #   bash .claude/scripts/sanitize-scan.sh <file>...
 #
-# Exit: 0 = no BLOCK hits, 1 = at least one BLOCK hit, 2 = usage / missing file.
+# Exit: 0 = no BLOCK hits, 1 = at least one BLOCK hit, 2 = usage / missing or
+# unreadable file, 3 = grep failed while scanning. On 2 and 3 no RESULT: line is
+# printed — callers must treat a missing RESULT: line as a hard stop, never CLEAN.
+# Files are scanned with grep -a so NUL bytes cannot hide a match behind GNU grep's
+# "binary file matches" message (which newer grep sends to stderr, not stdout).
 
 export LC_ALL=C.UTF-8
 
@@ -41,12 +45,19 @@ fi
 
 status=0
 for f in "$@"; do
-  if [ ! -f "$f" ]; then echo "missing file: $f" >&2; exit 2; fi
+  if [ ! -f "$f" ] || [ ! -r "$f" ]; then echo "missing or unreadable file: $f" >&2; exit 2; fi
   echo "== $f"
   block=0; review=0
   while IFS='|' read -r sev cat re; do
     [ -z "$sev" ] && continue
-    lines=$(grep -n -i -E -e "$re" -- "$f" | cut -d: -f1 | sort -n -u | paste -sd, -)
+    # Probe first so "no match" (1) and "grep failed" (>=2) are told apart.
+    grep -a -q -i -E -e "$re" -- "$f"; rc=$?
+    if [ "$rc" -gt 1 ]; then
+      echo "scan error: grep exited $rc on $f (pattern: $cat) — not CLEAN" >&2
+      exit 3
+    fi
+    [ "$rc" -eq 1 ] && continue
+    lines=$(grep -a -n -i -E -e "$re" -- "$f" | cut -d: -f1 | sort -n -u | paste -sd, -)
     [ -z "$lines" ] && continue
     n=$(printf '%s\n' "$lines" | awk -F, '{print NF}')
     printf '  %-6s %-46s %3s line(s): %s\n' "$sev" "$cat" "$n" "$lines"

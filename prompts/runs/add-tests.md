@@ -140,8 +140,22 @@ $ npx vitest run --reporter=verbose
       Tests  13 failed | 20 passed (33)
 ```
 
-No new test passes on code that has the defect it targets, and the 20 that pass
-are the pre-existing green cases the run was required not to disturb.
+Where the 33 split on the original code (corrected 2026-11-15; earlier text said
+the 20 passing tests were all pre-existing, which the numbers contradict):
+
+| Group | Tests | On original code |
+|---|---|---|
+| Earlier 22 | 22 | **5 fail** (#1–5 in the table) · 17 pass |
+| New 11 | 11 | **8 fail** (#6–13) · **3 pass** |
+| Total | 33 | 13 fail · 20 pass = 17 earlier + 3 new |
+
+The 3 new tests that pass on defective code are the ones that pin behaviour the
+original already had and that target no defect: `приймає межові знижки 0 і 100`,
+`не мутує вхідний об'єкт і не дописує знижку за замовчуванням` and
+`найбільше безпечне ціле в одній частині лишається незмінним`. So "no new test
+passes on code that has the defect it targets" holds — each of the 8 defect-targeting
+new tests fails — but it is **not** true that every passing test is an old one. The
+split was derived from the two tables in this file; it was not re-run test by test.
 
 ## Defects
 

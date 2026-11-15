@@ -320,8 +320,9 @@ build on any of them. The guarded cases above are *not* gaps — they throw.
 ## Tests and typecheck
 
 ```bash
-cd app && npm test
-cd app && npm run typecheck
+cd app
+npm test
+npm run typecheck
 ```
 
 In this checkout `npm test` (vitest v5.0.0) reported **Test Files 1 passed (1)**

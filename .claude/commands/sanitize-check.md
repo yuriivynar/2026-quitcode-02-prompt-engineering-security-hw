@@ -54,6 +54,9 @@ Then one line per file with the verdict:
 - `REVIEW`: "No secrets matched. A human confirms lines … are placeholders or synthetic, then the document may go to the tier in §6 for its highest remaining category."
 - `CLEAN`: "No pattern matched. Patterns are not a guarantee: a human reads the
   file locally, outside this session, before it goes to any model."
+- **No `RESULT:` line** (scanner exit `2` — missing or unreadable file — or `3` —
+  `grep` failed): "The scan did not run for this file. It is not CLEAN. Fix the
+  problem reported on stderr and re-run; do not send it to any model meanwhile."
 
 ## Acceptance criteria
 

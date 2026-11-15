@@ -2,7 +2,7 @@
 name: add-tests
 purpose: Generate an exhaustive unit-test suite for one module, then report the defects those tests expose instead of silently fixing them.
 tested-on: `app/src/quote.ts` — run 2026-09-14: suite 22 → 33, all green; the same suite fails 13 tests on the original code, including the seeded `splitInstallments` defect; trace in `runs/add-tests.md`
-version: 3
+version: 4
 ---
 
 # Add exhaustive unit tests for a module
@@ -90,7 +90,12 @@ Read all of these before writing a single line:
 - Your change to that file must be **purely additive**. Never delete, rename,
   skip or weaken an existing test to reach a green run: editing an assertion to
   match buggy output is the failure mode this prompt exists to prevent.
-- No new dependencies. No `it.only`, `describe.only`, `it.skip`, `it.todo`.
+- No new dependencies. No `it.only`, `describe.only`, `it.skip`, `it.todo`, and
+  **no `it.fails` / `test.fails` / `describe.fails`**. An expected-fail test goes
+  green *because* the bug exists and turns red when someone fixes it, so a defect
+  hides behind a passing run — the weak-prompt baseline in `runs/add-tests.md`
+  did exactly that. A test that proves a defect is a plain `it` asserting the
+  spec; it fails on the defective code, and that failure is the evidence.
 - Deterministic only: no network, filesystem, timers, `Date.now()`, unseeded
   randomness. No snapshots. No mocks for pure functions.
 - Every expected value is a literal you derived by hand from the spec — never
@@ -110,12 +115,15 @@ Read all of these before writing a single line:
       least one new test; `QuoteInput` is listed as N/A (type-only).
 - [ ] Every dimension 1–11 is covered per function, or marked N/A with a reason.
 - [ ] `cd app && npm test` was actually run; the report quotes its real summary
-      line and exit code, and the run shows **0 skipped / 0 todo**.
+      line and exit code, and the run shows **0 skipped / 0 todo / 0 expected
+      fail**; `grep -nE "\.(only|skip|todo|fails)\(" app/src/quote.test.ts`
+      prints nothing.
 - [ ] The test count after the run is higher than before it; both are stated.
 - [ ] `cd app && npm run typecheck` exits 0.
 - [ ] Every failing test appears in the defect list with the defect it proves,
-      and the failing-test count in the run output equals the number of defects
-      marked as proven by a failing test.
+      and every defect marked as proven by a failing test names at least one such
+      test. The mapping is per test: several tests may prove the same defect, so
+      the failing-test count and the defect count are **not** required to match.
 - [ ] Each coverage-table row answers "breaks if" with a concrete change to
       `app/src/quote.ts` that would make that test fail; a row with no answer is
       a tautological test — delete it.
@@ -162,6 +170,13 @@ invented spec produces tests that lock in the wrong behaviour.
   nothing from the failed runs is claimed.
 - **Judgement the dimensions forced:** `-0` and `"-$0.00"` were marked N/A rather
   than asserted, because no doc comment defines them and a test would lock them in.
+- **v4 changes (2026-11-15, PR review):** (1) `it.fails` / `test.fails` banned and
+  "0 expected fail" added to the run criteria — the weak-prompt baseline showed
+  expected-fail tests turning a found bug into a green suite; (2) the
+  failing-tests-to-defects criterion maps per test instead of demanding equal
+  counts (13 failing tests prove fewer defects). Not re-run as a full agent run;
+  the evidence for both changes is the baseline run and the 13-row table in
+  `runs/add-tests.md`.
 - **Version history:** v1 used slot placeholders → v2 replaced them with real paths
   (the rubric deducts for unfilled placeholders) plus a Reuse note → v3 after a
   meta-prompting sub-agent (hand-derived expected values, the `.only` ban, the

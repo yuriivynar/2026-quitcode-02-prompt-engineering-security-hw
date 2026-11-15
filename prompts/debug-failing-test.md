@@ -2,7 +2,7 @@
 name: debug-failing-test
 purpose: Turn a failing test or a wrong number into a reproducible minimal case, a root cause at file:line, and the smallest fix — without touching anything else.
 tested-on: `app/src/quote.ts` — symptom `formatMoney(0.5)` → `"$0.0.5"`, run twice (markdown + XML dialect, 2026-09-14); both found root cause `quote.ts:49` and proposed the same one-line fix; trace in `runs/debug-failing-test.md`
-version: 1
+version: 2
 ---
 
 # Debug a failing test or a wrong result
@@ -96,8 +96,10 @@ Numbered blocks, in this order, with no prose around them:
 
 ## Stop (Stop)
 
-Stop after the proposed fix. Do not apply it, do not add regression tests
-(`add-tests.md` owns those), do not clean up neighbouring code.
+Stop after block 8, *Applied nothing* — the last block of the response format,
+which comes after the proposed fix (block 5) and blocks 6–7. Do not apply the
+fix, do not add regression tests (`add-tests.md` owns those), do not clean up
+neighbouring code.
 
 If reproduction fails — the symptom does not occur on the current tree — stop
 and report that instead of hunting for a different bug to fix. If no symptom was
@@ -121,6 +123,13 @@ other's work. Full trace: [`runs/debug-failing-test.md`](./runs/debug-failing-te
   `formatMoney(99.6)` becomes `"$0.100"` — still wrong, now by a dollar.
 - **Both** verified all existing `formatMoney` tests are unaffected
   (`Math.round` is the identity on integers) and applied nothing.
+- **v2 change (2026-11-15, PR review):** the Stop rule, in both dialects, said
+  "stop after the proposed fix" while the response format puts three more blocks
+  after it (6 *Not proven*, 7 *Found while debugging*, 8 *Applied nothing*). It now
+  stops after block 8 and keeps the ban on applying the fix. Wording only; the
+  two runs above were done on v1; `runs/debug-failing-test.md` records that both
+  "stopped at a proposed diff" and reported a "found while debugging" item, but not
+  whether each delivered all eight blocks — so that was never verified.
 - **Both** flagged a `prompts/runs/` directory that appeared mid-run as *not
   theirs*, with timestamp evidence — rather than claiming a byte-identical
   `git status`. The honesty criteria held under a genuinely confusing tree.
@@ -237,8 +246,9 @@ being visually distinct — not as a quality upgrade on its own.
 </format>
 
 <stop>
-  Stop after the proposed fix. Do not apply it, do not add regression tests, do
-  not clean up neighbouring code. If reproduction fails, report that instead of
+  Stop after block 8 ("Applied nothing"), the last block of the format — it
+  follows the proposed fix and blocks 6 and 7. Do not apply the fix, do not add
+  regression tests, do not clean up neighbouring code. If reproduction fails, report that instead of
   hunting for a different bug. If no symptom was supplied, or the evidence points
   at two expressions equally, stop and ask.
 </stop>

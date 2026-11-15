@@ -10,7 +10,7 @@
 | Команда | Файл | Параметри (`$ARGUMENTS`) | Основа |
 |---|---|---|---|
 | `/sanitize-check` | `.claude/commands/sanitize-check.md` + `.claude/scripts/sanitize-scan.sh` | `<file>...` | Task B, `docs/sanitization-checklist.md` §2 |
-| `/scope-client-request` | `.claude/commands/scope-client-request.md` | `<path> [rate-cents]` | `prompts/scope-client-request.md` v2 |
+| `/scope-client-request` | `.claude/commands/scope-client-request.md` | `<path> [rate-cents]` | `prompts/scope-client-request.md` v3 (прогони нижче виконано на v2) |
 
 ## 1. `sanitize-scan.sh` напряму (перед командами)
 
@@ -123,3 +123,34 @@ Exit code `0` — саме те, на чому доконтрактний кро
 Зверніть увагу: шлях у команді тепер **в одинарних лапках**, і крок 2 відхиляє
 шлях із shell-метасимволами до запуску — друга знахідка CodeRabbit на цьому
 файлі (`$ARGUMENTS` підставлявся в командний рядок без екранування).
+
+## Виправлення сканера за рев'ю — 2026-11-15
+
+CodeRabbit знайшов дві діри в `.claude/scripts/sanitize-scan.sh`, і обидві стосуються
+того, що вердикт `CLEAN` міг означати «скан не відбувся»:
+
+1. **Двійковий вміст.** Файл з NUL-байтом перед ключем: GNU `grep` без `-a` не
+   друкує номер рядка, лише «Binary file … matches» (у `grep` ≥ 3.5 — у stderr,
+   тож `lines` порожній, і скрипт видав би `CLEAN`). Відтворено частково: на
+   `grep` 3.0 (Git Bash тут) вердикт лишався `BLOCK`, але перелік рядків містив
+   сміття `Binary file <шлях> matches` замість номера. Обхід на `grep` ≥ 3.5 **не**
+   відтворено — його не було на чому перевірити.
+2. **Нечитабельний файл / збій `grep`.** `[ -f ]` проходить, `grep` падає без
+   stdout, порожній перелік читався як «збігів немає».
+
+Виправлення: `grep -a`; перевірка `-r`; окремий пробний `grep -q`, де код `1` — «немає
+збігів», а `≥ 2` — помилка скану з виходом `3` без рядка `RESULT:`. Обидві команди
+тепер зупиняються, якщо `RESULT:` відсутній.
+
+Повторний прогін на тих самих файлах (виводи дослівно скорочено до суті):
+
+```
+txt-test.txt   (ключ на рядку 1)          → BLOCK … line(s): 1        exit=1
+bin-test.txt   (NUL, ключ на рядку 2)     → BLOCK … line(s): 2        exit=1   # було: "Binary file … matches"
+nope.txt       (немає файлу)              → missing or unreadable     exit=2
+clean.txt      (звичайний текст)          → RESULT: CLEAN
+docs/sanitized-brief.md, materials/decoy-request.md → ті самі категорії й рядки, що й вище
+```
+
+Не перевірено: шлях `exit 3` (збій `grep` посеред скану) — його нічим було
+спровокувати на цій машині, тож він прочитаний, але не виконаний.
