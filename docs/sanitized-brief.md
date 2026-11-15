@@ -37,7 +37,7 @@ Google Sheets, потім створює запис у CRM і повідомля
 |---|---|---|---|
 | CRM | API key (live) | `<SECRET_OUT_OF_BAND>` | env `CRM_API_KEY` |
 | Slack | Bot token | `<SECRET_OUT_OF_BAND>` | env `SLACK_BOT_TOKEN` |
-| Airtable | ID бази | `<INTERNAL>` | env `AIRTABLE_BASE_ID` |
+| Airtable | ID бази | `<SECRET_OUT_OF_BAND>` | env `AIRTABLE_BASE_ID` |
 | Airtable | Personal access token | `<SECRET_OUT_OF_BAND>` | env `AIRTABLE_PAT` |
 | n8n | URL прод-вебхука прийому заявок | `<SECRET_OUT_OF_BAND>` | env `INTAKE_WEBHOOK_URL` |
 | Postgres | Connection string до **read-only репліки** з замовленнями | `<SECRET_OUT_OF_BAND>` | env `ORDERS_DB_URL` |
@@ -82,7 +82,7 @@ Google Sheets, потім створює запис у CRM і повідомля
 | CRM API key, Slack token, Airtable PAT | 🔴 секрети | out-of-band | `<SECRET_OUT_OF_BAND>` + ім'я env |
 | URL прод-вебхука (хто знає URL — може слати заявки) | 🔴 секрет | out-of-band | `<SECRET_OUT_OF_BAND>` |
 | Postgres connection string (логін, пароль, хост, БД) | 🔴 секрет | out-of-band | `<SECRET_OUT_OF_BAND>` |
-| Airtable base ID | 🟡 внутрішня логіка | redaction | `<INTERNAL>` |
+| Airtable base ID | 🔴 частина доступу до інтеграції — в оригіналі стоїть в одній комірці з PAT; за чек-лістом §1 «сумнівний випадок → вища категорія» (сам по собі ID бази був би 🟡) | out-of-band | `<SECRET_OUT_OF_BAND>` + ім'я env |
 | 3 рядки продакшн-вигрузки (ПІБ, телефони, адреси, суми) | 🔴 продакшн-дані + PII | synthetic | 3 вигадані рядки того самого формату |
 | Оцінка годин, ставка, собівартість, маржа | 🟡 внутрішня комерція | redaction | `<INTERNAL>` |
 | Конкурент і дедлайн пропозиції | 🟡 внутрішня комерція | redaction | прибрано |

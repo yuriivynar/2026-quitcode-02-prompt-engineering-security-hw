@@ -11,6 +11,8 @@
       "Read(materials/client-brief.md)",
       "Edit(**/.env)",
       "Edit(**/.env.*)",
+      "Edit(**/.claude/settings*.json)",
+      "Write(**/.claude/settings*.json)",
       "Bash(cat *.env*)",
       "Bash(type *.env*)",
       "Bash(printenv*)",
@@ -24,15 +26,48 @@
       "PowerShell(Invoke-RestMethod *)",
       "PowerShell(iwr *)",
       "PowerShell(irm *)",
-      "WebFetch"
+      "WebFetch",
+      "Bash(node -e*)",
+      "Bash(node --eval*)",
+      "Bash(node --input-type*)",
+      "Bash(python -c*)",
+      "Bash(python3 -c*)",
+      "Bash(py -c*)",
+      "Bash(perl -e*)",
+      "Bash(ruby -e*)",
+      "Bash(php -r*)",
+      "Bash(npx *)",
+      "Bash(bunx *)",
+      "Bash(deno *)",
+      "PowerShell(node -e*)",
+      "PowerShell(python -c*)",
+      "PowerShell(Invoke-Expression*)",
+      "PowerShell(iex *)",
+      "PowerShell(Start-BitsTransfer*)",
+      "PowerShell(New-Object Net.WebClient*)",
+      "PowerShell(*System.Net.WebClient*)",
+      "PowerShell(*System.Net.Sockets*)",
+      "Bash(ssh *)",
+      "Bash(sftp *)",
+      "Bash(rsync *)",
+      "Bash(telnet *)",
+      "Bash(ncat *)",
+      "Bash(socat *)",
+      "Bash(ftp *)",
+      "Bash(git push*)"
     ],
     "ask": [
-      "Bash(git push*)",
       "Bash(gh pr create*)",
       "Bash(gh pr comment*)",
       "Bash(gh issue *)",
-      "PowerShell(git push*)",
       "PowerShell(gh *)"
-    ]
+    ],
+    "defaultMode": "default"
+  },
+  "sandbox": {
+    "network": {
+      "allowUnixSockets": [],
+      "allowLocalBinding": false
+    }
   }
 }

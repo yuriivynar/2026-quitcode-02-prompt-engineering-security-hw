@@ -75,9 +75,34 @@ example (`parts: 121`) was added alongside it. Both are now in `app/README.md`
 with the output above.
 
 (`_ex.mjs` is a throwaway file under `app/`, deleted after the run. The
-`node --input-type=module -e` form the README documents is blocked in this
-session by `.claude/settings.json`, which denies `Bash(node -e*)`; the import and
-the printed values are identical either way.)
+`node --input-type=module -e` form the README documents is blocked in an agent
+session by `.claude/settings.json`, which denies `Bash(node -e*)` and
+`Bash(node --input-type*)`; the import and the printed values are identical either
+way. Both forms were re-tried on 2026-11-15 and refused. The a4e3f82 snapshot of
+the file did not yet contain these rules — the PR reviewer caught it — so the
+statement became true only once the rules were added to the committed config.)
+
+## v2 follow-up — 2026-11-15 (PR review)
+
+The reviewer found the prompt contradicting itself after the rewrite, so
+`write-docs.md` is now **v2** (changes listed in its run log). Two things from this
+pass:
+
+- **Known gaps was required by the acceptance criteria but absent from
+  `app/README.md`** (the file only had a validation table and a two-item
+  paragraph). It now has a `Known gaps` section with four rows, each executed
+  from a scratch `.mjs` against the current `quote.ts`:
+  `estimateTotalCents({ hours: -1, rateCents: 100 })` → `-100`;
+  `estimateTotalCents({ hours: -1, rateCents: 1, discountPercent: 50 })` → `-0`;
+  `formatMoney(-0.4)` → `"-$0.00"` (and `formatMoney(-0)` → `"$0.00"`);
+  `formatMoney(123456789)` → `"$1,234,567.89"`.
+- **A claim carried over from `runs/review-pr.md` was wrong and was caught by
+  running it:** `splitInstallments(-0, 3)` was recorded as `[0, 0, 0]`. It returns
+  `[ -0, -0, -0 ]`; `JSON.stringify` printed it as `[0,0,0]`. Same trap as the
+  `NaN` → `null` one in `runs/review-module.md`. The README states the real value.
+
+This v2 edit was **not** re-executed as a full agent run of the prompt; the README
+changes were verified by running the examples above and `npm test` (40 passed).
 
 **Lesson recorded:** generated docs are a snapshot. Run the docs prompt *after*
 behaviour changes land, not in parallel with them — and when behaviour does

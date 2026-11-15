@@ -300,13 +300,22 @@ instead of returning a wrong amount. Summary of the guards:
 | `splitInstallments` | `totalCents` not a safe integer | a fractional total cannot sum back exactly (`100.5` gave a sum of `101`); above `Number.MAX_SAFE_INTEGER` the split arithmetic silently loses precision |
 | `formatMoney` | `NaN`, `±Infinity` | would print `"$NaN.NaN"` on a client document |
 
-Still accepted and **not** a contract: negative `hours` (the doc comment sets no
-range), and a sub-half-cent negative amount in `formatMoney`, which renders as
-`"-$0.00"`. Do not build on either.
-
 `estimateTotalCents` rounds the final total only, not the intermediate
 arithmetic, and `formatMoney` is the display end of the pipeline — it is not a
 parser, and the module has no inverse of it.
+
+## Known gaps
+
+Behaviour the code accepts but **no doc comment or test defines**. Each row was
+executed against the current `app/src/quote.ts`; none is a contract, so do not
+build on any of them. The guarded cases above are *not* gaps — they throw.
+
+| Input | What the code does today | Why it is a gap |
+| --- | --- | --- |
+| `estimateTotalCents({ hours: -1, rateCents: 100 })` | returns `-100` | the doc comment sets no range for `hours`, so a negative total (a credit) is accepted silently |
+| `estimateTotalCents({ hours: -1, rateCents: 1, discountPercent: 50 })` | returns `-0` (`Object.is(result, -0)` is `true`) | `-0` passes the safe-integer guard and flows on: `splitInstallments(-0, 3)` returns `[ -0, -0, -0 ]`, which `JSON.stringify` serialises as `[0,0,0]`, so the sign disappears the moment the result is serialised |
+| `formatMoney(-0.4)` | returns `"-$0.00"`, while `formatMoney(-0)` returns `"$0.00"` | the same displayed value gets a minus sign or not depending on whether the input was exactly `-0` or rounded to zero |
+| `formatMoney(123456789)` | returns `"$1,234,567.89"` | the `en-US` grouping and the `$` symbol are hard-coded and cannot be configured |
 
 ## Tests and typecheck
 

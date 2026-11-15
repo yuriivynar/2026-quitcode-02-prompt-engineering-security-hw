@@ -8,8 +8,11 @@
 ## How it was run, including what went wrong
 
 1. **Earlier, by the participant:** a first test-writing pass grew the suite from
-   4 to 22 tests and exposed the workshop's seeded defect (`splitInstallments`
-   losing or inventing cents via `Math.round(total / parts)`), which was then fixed.
+   4 to 22 tests and, per the participant, exposed the workshop's seeded defect
+   (`splitInstallments` losing or inventing cents via `Math.round(total / parts)`),
+   which was then fixed. **That pass left no transcript and no recorded prompt, so
+   it is not claimed as evidence of anything** — see "Which run found the seeded
+   defect" below for the runs that do have a trace.
 2. **Planned blind re-run on the pre-fix code** in an isolated sandbox (HEAD copy,
    4 green tests, defect hidden): **failed** — the sub-agent hit an API session
    rate limit before writing anything. Nothing from that run is claimed here.
@@ -28,6 +31,51 @@
 | `app/src/quote.ts` changed by the run | no — byte-identical to a pre-run copy |
 | Lines removed from `quote.test.ts` | 0 |
 | `.only` / `.skip` / `.todo` | none |
+
+## Baseline: the weak prompt, actually run — 2026-11-15
+
+`materials/weak-prompt.md` (`допоможи з тестами для app`) had never been run, so the
+comparison with this prompt was an assumption. It was run once, verbatim, in an
+isolated sandbox: `git archive da25af6 app` (the original code — 4 green tests,
+`Math.round(totalCents / parts)` at `quote.ts:32`) copied outside the repo, with a
+fresh sub-agent that was given only that sentence. Two additions to the bare
+prompt, both needed for the trace and both worth knowing about: a note naming the
+sandbox directory, and a request to end with a report of files opened, assumed
+scope, "done" criterion and surprises. The sandbox had no `AGENTS.md`/`CLAUDE.md`,
+so no repo guardrails applied. One run, one model — an observation, not a benchmark.
+
+Checked afterwards against the sandbox, not taken from the agent's own report:
+only `app/src/quote.test.ts` changed, `quote.ts` is byte-identical to the original,
+and `npm test` shows `Tests 21 passed | 5 expected fail | 5 todo (31)` (4 → 31).
+
+| Question | What the agent did |
+|---|---|
+| Scope | Guessed "tests for `app`" = the one module `quote.ts` and its one test file. Opened `quote.ts`, `quote.test.ts`, `package.json`, `tsconfig.json` and a directory listing; nothing else. Read the file comments ("tests are deliberately minimal") as permission to expand coverage. Did not touch source, deps or config — by its own reading of "tests", not because anything forbade it. |
+| "Done" | Invented its own: every export has happy/boundary/edge cases, suite green, typecheck clean, bugs "recorded visibly". Stopped when the bar went green. Dropped one test of its own that passed trivially. |
+| Seeded defect | **Noticed it**: `splitInstallments(100, 3)` → sum 99, `(5, 2)` → sum 6, `(1, 3)` → `[0,0,0]` — plus `formatMoney(1.5)` → `"$0.1.5"`, no `parts` validation, no `discountPercent` validation. |
+| What it did with the findings | Pinned the cent-loss and the `formatMoney` bug as `it.fails` (5 of them) and the validation gaps as `it.todo` (5), so **`npm test` is green with the defects inside**. Wrote the findings in its chat report only; nothing in the repo says the code is wrong except those markers. |
+
+Reading: the weak prompt did **not** miss the defect — the hint in
+`materials/weak-prompt.md` ("the weak prompt won't find it") did not hold for this
+run. What it lacked was an acceptance criterion that says what to do with a defect:
+the agent chose a convention (`it.fails`) that turns "found a bug" into "suite
+passes". The structured prompt's criteria close that — a test must fail on code that
+has the defect it targets (13 do, below) and defects get their own section of the
+report. The difference shown here is the *handling* of the finding, not the
+finding.
+
+## Which run found the seeded defect
+
+| Run | Found it? | Trace |
+|---|---|---|
+| Participant's first pass (4 → 22) | claimed, **unverifiable** | none — not counted |
+| Weak prompt, sandbox, 2026-11-15 | yes — as 3 `it.fails` + a chat note | this section; sandbox diff checked |
+| `add-tests.md` v3 suite, run against the original code (re-verified 2026-09-15) | yes — failing tests 1–4 below | verbatim `13 failed \| 20 passed (33)` |
+| Blind sub-agent run of `add-tests.md` on the pre-fix code | **never happened** — API rate limit (item 2 above) | none |
+
+So the only prompt-driven *discovery* on record is the weak-prompt run; the
+structured prompt's contribution is the reproducible *proof* that its tests fail on
+defective code, not an independent find.
 
 ## Coverage added, per dimension
 

@@ -1,7 +1,7 @@
 # Run log — `review-module.md`
 
 - **Date:** 2026-09-14
-- **Prompt:** [`../review-module.md`](../review-module.md) v1
+- **Prompt:** [`../review-module.md`](../review-module.md) v1 (current file is v2 — see the caveat below)
 - **Target:** `app/src/quote.ts` (working tree, suite green at 22/22)
 - **Runner:** Claude Code sub-agent given *only* the artifact — no hints about
   what to find, no mention of any known defect.
@@ -55,6 +55,19 @@ non-integer `rateCents` rounding to an integer output; precision loss above
 I re-derived F3 and F4 myself before accepting them:
 `splitInstallments(100.5,3)` → `[34,34,33]`, sum `101`; `formatMoney(0.5)` →
 `"$0.0.5"`; `formatMoney(NaN)` → `"$NaN.NaN"`. Confirmed.
+
+## Caveat added in the PR review — 2026-11-15: F3 was in the prompt
+
+The v1 prompt's own sample finding (Constraints) was literally
+`splitInstallments(100.5, 3)` returning `[34, 34, 33]` — the same input, the same
+output and the same arithmetic the agent then reported as **F3**. The claim above
+that the agent had "no hint about what to find" is therefore false for F3: the
+prompt handed it that finding as a worked example. Treat F3 as *copied from the
+example*, not discovered. F1 and F2 were also steered: Context tells the auditor to
+check the `discountPercent` `0..100` clause verbatim. Only F4–F7 (`formatMoney` and
+`NaN` handling) were not pointed at by any sentence of the prompt, so those are the
+findings that count as independent. Fixed in v2 of the prompt, which uses an
+invented function (`roundUpToStep`) as its sample.
 
 ## What had to be corrected
 

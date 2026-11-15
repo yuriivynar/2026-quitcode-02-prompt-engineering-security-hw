@@ -44,7 +44,11 @@ $ echo $?
 (`formatMoney(0.5)` and `formatMoney(99.6)`, JSON-quoted so the stray `.` is
 unambiguous. `repro.mjs` is two `console.log` lines importing `./src/quote.ts`;
 the `--input-type=module -e` one-liner the original runs used is now blocked by
-`.claude/settings.json`, which denies `Bash(node -e*)`.)
+`.claude/settings.json`, which denies `Bash(node -e*)` and `Bash(node --input-type*)`.
+Both forms were re-tried on 2026-11-15 and refused with «Permission … denied». The
+a4e3f82 snapshot of the file did not yet contain these rules — the PR reviewer
+caught that — so the rules must ship in the commit that fixes the review, not only
+as a claim in this log.)
 
 **2 — why the fix goes on the `abs` line, not the `frac` line.** Both candidates
 applied to a copy of the original body:

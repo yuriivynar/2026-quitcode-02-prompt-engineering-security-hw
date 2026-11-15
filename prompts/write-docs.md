@@ -2,7 +2,7 @@
 name: write-docs
 purpose: Document a module's public API for the developer who has to use it, from the code itself — every example output verified by a real run, no invented behaviour.
 tested-on: `app/src/quote.ts` → `app/README.md` — run 2026-09-14: 10 examples, each executed and re-run from the finished file; docs updated by hand after the defect fixes; trace in `runs/write-docs.md`
-version: 1
+version: 2
 ---
 
 # Document a module's public API
@@ -31,9 +31,12 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
 - For a value no test asserts, run it. This works from `app/` (Node 22 also
   needs `--experimental-strip-types`):
   `node --input-type=module -e "import { formatMoney } from './src/quote.ts'; console.log(formatMoney(5));"`
-  If `.claude/settings.json` denies `node -e` in your session, put the same two
-  lines in a throwaway `.mjs` file under `app/`, run `node` on it, and delete it —
-  the output is identical and the README documents the `-e` form either way.
+  In this repo `.claude/settings.json` denies `Bash(node -e*)` and
+  `Bash(node --input-type*)`, so an agent session cannot run that form: put the same
+  two lines in a throwaway `.mjs` file, run `node` on it, and delete it — the output
+  is identical and the README documents the `-e` form for human readers. Do not
+  pipe the code into `node` on stdin or reach for another interpreter one-liner:
+  that is the same form the deny rule exists to stop.
 - Commands in `app/package.json`: `cd app && npm test`, `cd app && npm run typecheck`.
 - Nothing typechecks README snippets (`app/tsconfig.json` covers only `src`) and
   `app/package.json` has no `main`/`exports`: use only import paths you executed.
@@ -61,9 +64,11 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
   generated it): regenerate it in full and overwrite, never append a second copy
   of a section. No other file is written, moved or deleted — no fix, no notes
   file — with exactly one exception, below.
-- **The one exception: a throwaway `app/*.mjs`**, and only if your session cannot
+- **The one exception: a throwaway `.mjs` file**, needed when your session cannot
   run `node --input-type=module -e` (`.claude/settings.json` denies
-  `Bash(node -e*)`). Put the same import and `console.log` lines in it, run it,
+  `Bash(node -e*)`, so in this repo that is the normal case). Prefer a location
+  outside the repo; if it must live under `app/`, name it `app/_ex.mjs`. Put the
+  same import and `console.log` lines in it, run it,
   paste the output, then **delete it before** the final `git status --porcelain`
   check. It is a way to execute the documented one-liner, not a licence to keep a
   script: if it still exists when you stop, the run has failed its own criteria.
@@ -75,15 +80,19 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
 - No hedged values: no `≈`, no "about", no "roughly", no `...`, no "may vary".
 - Do not invent behaviour: no "throws on invalid input" where no `throw` exists,
   no invented parameters, no performance claims, no roadmap, no "coming soon".
-- Where behaviour is undefined (non-integer amounts, out-of-range discount,
-  `NaN`/`Infinity`), say it is **undefined/unguarded** — do not paper over it
-  and do not present it as a feature.
+- Out-of-range discount, `NaN`/`Infinity`, a non-safe-integer `totalCents` and an
+  overflowing total are **guarded** — they throw `RangeError` — so document them
+  as contract and never call them undefined/unguarded. Only what the code
+  accepts without any doc or test defining it (the four rows of `Known gaps`:
+  negative `hours`, the `-0` result, `"-$0.00"`, the hard-coded `"en-US"`) is
+  **undefined/unguarded**: say so, do not paper over it, and do not present it as
+  a feature.
 - No marketing tone, no emoji, no "simply", no "just".
 
 ## Acceptance criteria
 
-- [ ] Each of `QuoteInput`, `estimateTotalCents`, `splitInstallments`,
-      `formatMoney` has its own section, and no section documents a symbol that
+- [ ] Each of `QuoteInput`, `MAX_INSTALLMENTS`, `estimateTotalCents`,
+      `splitInstallments`, `formatMoney` has its own section, and no section documents a symbol that
       `app/src/quote.ts` does not export.
 - [ ] Every signature in the README is character-for-character identical to the
       one in `app/src/quote.ts`, including optional markers and return types.
@@ -101,8 +110,8 @@ Write `app/README.md` documenting the five exported symbols of `app/src/quote.ts
 - [ ] Every guard is documented with its trigger: the three `RangeError` cases of
       `estimateTotalCents` (non-finite `hours`/`rateCents`, `discountPercent`
       outside `0..100`, computed total not a safe integer), the two of
-      `splitInstallments` (`parts` outside `1..MAX_INSTALLMENTS`, non-integer
-      `totalCents`), and the one of `formatMoney` (non-finite `cents`).
+      `splitInstallments` (`parts` outside `1..MAX_INSTALLMENTS`, `totalCents` not a
+      safe integer), and the one of `formatMoney` (non-finite `cents`).
 - [ ] `MAX_INSTALLMENTS` has its own section stating both its business meaning
       and that it bounds an allocation.
 - [ ] A "Known gaps" section marks as undefined/unguarded at least these four:
@@ -143,6 +152,15 @@ verification and say which one.
 - **What had to be corrected:** the module was fixed minutes after the run, so three
   "no validation" statements went stale. They were updated by hand to cite the new
   passing tests. Lesson: run this prompt *after* behaviour changes land.
+- **v2 changes (2026-11-15, PR review):** (1) the constraint that called out-of-range
+  discount and `NaN` "undefined/unguarded" contradicted Context and the acceptance
+  criteria — they are guarded now, and only the four `Known gaps` rows are
+  undefined; (2) the `.mjs` exception is the normal path in this repo (the deny rule
+  for `node -e` / `node --input-type` exists and was verified by a refused run), and
+  piping code into `node` is named as a non-option; (3) acceptance criteria list all
+  five symbols and say "not a safe integer" for `totalCents`; (4) `app/README.md`
+  gained the `Known gaps` section the criteria already demanded. Not re-run as a
+  full agent run — examples re-executed by hand, see `runs/write-docs.md`.
 - **v1 history:** drafted by hand → improved by a meta-prompting sub-agent (the
   two-sources rule, the verification log, banned hedges, and a replacement for a
   `git diff --name-only` criterion that could never see a new untracked file) → run.

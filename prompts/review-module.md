@@ -2,7 +2,7 @@
 name: review-module
 purpose: Audit a whole module against its documented contract and find inputs that break it — a standing audit, not a diff review.
 tested-on: `app/src/quote.ts` — audit run 2026-09-14 found 7 contract violations (F1–F7), read-only scope held; trace in `runs/review-module.md`
-version: 1
+version: 2
 ---
 
 # Audit a module against its contract
@@ -58,8 +58,9 @@ contract, and rank the findings by what they cost in production.
 - Do not comment on formatting, naming or style — a linter owns those.
 - Do not propose architecture changes or new abstractions.
 - No finding without a concrete input that triggers it. "Could overflow" is not a
-  finding; `splitInstallments(100.5, 3)` returning `[34, 34, 33]` — a sum of 101
-  where the doc promises exactly 100.5 — is.
+  finding; for a made-up module, `roundUpToStep(20, 10)` returning `30` where its
+  JSDoc promises "the smallest multiple of `step` that is `>= value`" (so `20`) —
+  is. (That function does not exist in this repo; it only shows the shape.)
 - If the module accepts an input without throwing, that input is in scope.
   "The caller should not pass that" is a defense only when the code actually
   rejects it.
@@ -127,6 +128,15 @@ module had any known defect. Full trace: [`runs/review-module.md`](./runs/review
 - **What had to be corrected:** its first REPL pass printed `NaN` arrays through
   `JSON.stringify` (which shows `null`); it re-ran raw and disclosed the fix
   itself rather than shipping the wrong value.
+- **v2 changes (2026-11-15, PR review):** the sample finding in Constraints was
+  `splitInstallments(100.5, 3)` — a genuine defect of this very module, already
+  closed by a guard and listed as fixed in Context, so the example contradicted the
+  prompt. Worse, the audit above later reported exactly that input as **F3**, so F3
+  was prompted by the example and is **not** evidence of independent discovery
+  (F1 and F2 were also steered by Context's `0..100` clause; only F4–F7 were not
+  pointed at by the prompt). The example now uses an
+  invented function, `roundUpToStep`. Not re-run as an audit — a one-example swap
+  in Constraints; the run's evidence is unchanged except for the F3 caveat.
 - **v1 history:** drafted by hand → improved by a meta-prompting sub-agent
   (added the severity scale, the "audit is not triggered by a diff" boundary
   against `review-pr.md`, and the doc-clause gate) → run unchanged, as above.
