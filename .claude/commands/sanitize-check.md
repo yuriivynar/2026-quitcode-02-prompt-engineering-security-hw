@@ -54,9 +54,18 @@ Then one line per file with the verdict:
 - `REVIEW`: "No secrets matched. A human confirms lines … are placeholders or synthetic, then the document may go to the tier in §6 for its highest remaining category."
 - `CLEAN`: "No pattern matched. Patterns are not a guarantee: a human reads the
   file locally, outside this session, before it goes to any model."
+- `MANUAL` (scanner exit `4`; an `encoding:` line says why): "No secret matched,
+  but the file is binary, undecodable, or its encoding was only guessed (UTF-16
+  without a BOM, legacy CP1251), so the patterns cannot be trusted on it. It is
+  not CLEAN. A human converts it to UTF-8 locally and re-runs the scan, or reads
+  it outside this session; do not send it to any model meanwhile."
 - **No `RESULT:` line** (scanner exit `2` — missing or unreadable file — or `3` —
-  `grep` failed): "The scan did not run for this file. It is not CLEAN. Fix the
-  problem reported on stderr and re-run; do not send it to any model meanwhile."
+  `grep`/`iconv` failed or a required tool is missing): "The scan did not run for
+  this file. It is not CLEAN. Fix the problem reported on stderr and re-run; do
+  not send it to any model meanwhile."
+
+With several files the exit code is the worst one (`1` BLOCK > `4` MANUAL > `0`),
+so take each file's verdict from its own `RESULT:` line.
 
 ## Acceptance criteria
 

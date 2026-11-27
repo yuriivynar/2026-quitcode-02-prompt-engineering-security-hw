@@ -30,9 +30,13 @@ Arguments: $ARGUMENTS
      replacement file. Do not read the file, and do not proceed on your own
      judgement — a `REVIEW` hit is PII or commercial data until a human says
      otherwise. Re-run this step against a replacement path.
+   - `MANUAL` (exit `4`: binary, undecodable, or an encoding the scanner only
+     guessed, e.g. UTF-16 without a BOM) → **stop.** The patterns could not be
+     trusted on this file, so it is not CLEAN. Ask the operator for a UTF-8 copy
+     and re-run this step against it. Do not read the file.
    - `CLEAN` → continue to step 3.
    - **No `RESULT:` line at all** (the scanner exited `2` for a missing or
-     unreadable file, or `3` because `grep` failed) → stop. That is a scan that did
+     unreadable file, or `3` because `grep`/`iconv` failed) → stop. That is a scan that did
      not happen, not a clean file; report the stderr message and do not read
      the request.
 3. Read `prompts/scope-client-request.md` and follow its Role, Context,

@@ -2,7 +2,7 @@
 name: debug-failing-test
 purpose: Turn a failing test or a wrong number into a reproducible minimal case, a root cause at file:line, and the smallest fix — without touching anything else.
 tested-on: `app/src/quote.ts` — symptom `formatMoney(0.5)` → `"$0.0.5"`, run twice (markdown + XML dialect, 2026-09-14); both found root cause `quote.ts:49` and proposed the same one-line fix; trace in `runs/debug-failing-test.md`
-version: 2
+version: 3
 ---
 
 # Debug a failing test or a wrong result
@@ -31,8 +31,11 @@ that removes it without changing any other documented behaviour.
 - Suite: `app/src/quote.test.ts`. Tests are evidence, not the spec — where a
   test and the doc comment disagree, the doc comment wins and the test is wrong.
 - Commands from `app/package.json`: `cd app && npm test` runs the whole vitest
-  suite, `cd app && npx vitest run -t "не втрачає центи"` runs one test by name,
-  `cd app && npm run typecheck` runs `tsc --noEmit`.
+  suite, `cd app && npm test -- -t "не втрачає центи"` runs one test by name
+  (everything after `--` goes to `vitest run`), `cd app && npm run typecheck` runs
+  `tsc --noEmit`. Use only these npm scripts: `.claude/settings.json` denies `npx`
+  and interpreter one-liners (`node -e`, `node --input-type`), so a reproduction
+  snippet is a scratch file outside the repository, run as `node <path>`.
 - The tree may already carry uncommitted edits to the module, so run
   `git diff --stat -- app/src` first and diagnose the code actually running.
 - Domain: integer cents; a split sums back to the total exactly; installments
@@ -130,6 +133,15 @@ other's work. Full trace: [`runs/debug-failing-test.md`](./runs/debug-failing-te
   two runs above were done on v1; `runs/debug-failing-test.md` records that both
   "stopped at a proposed diff" and reported a "found while debugging" item, but not
   whether each delivered all eight blocks — so that was never verified.
+- **v3 change (2026-11-27, повторна перевірка автора курсу 16.11):** Context і
+  `<commands>` радили `cd app && npx vitest run -t "…"`, хоча `.claude/settings.json`
+  забороняє `Bash(npx *)` — промпт штовхав агента під власний deny. Тепер один тест
+  запускає npm-скрипт `cd app && npm test -- -t "не втрачає центи"` (аргументи після
+  `--` ідуть у `vitest run`; перевірено 2026-11-27: `Tests 1 passed | 39 skipped (40)`),
+  а обидва діалекти прямо кажуть, що `npx` і `node -e` заборонені й repro-сніпет —
+  це файл поза репо, `node <path>`. Інші промпти й команди перевірено на ту саму
+  суперечність: інструкцій з `npx`, `node -e` чи `python -c` більше немає (згадки
+  лишились лише в журналах старих прогонів, з приміткою).
 - **Both** flagged a `prompts/runs/` directory that appeared mid-run as *not
   theirs*, with timestamp evidence — rather than claiming a byte-identical
   `git status`. The honesty criteria held under a genuinely confusing tree.
@@ -190,9 +202,10 @@ being visually distinct — not as a quality upgrade on its own.
   </suite>
   <commands>
     <all>cd app &amp;&amp; npm test</all>
-    <single>cd app &amp;&amp; npx vitest run -t "не втрачає центи"</single>
+    <single>cd app &amp;&amp; npm test -- -t "не втрачає центи"</single>
     <types>cd app &amp;&amp; npm run typecheck</types>
     <tree>git diff --stat -- app/src</tree>
+    <denied>npx and interpreter one-liners (node -e, node --input-type) are denied by .claude/settings.json; use only the npm scripts above, and run a reproduction snippet as a scratch file outside the repository with node &lt;path&gt;</denied>
   </commands>
   <tree_state>
     The tree may already carry uncommitted edits to the module, so run the tree

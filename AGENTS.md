@@ -91,6 +91,9 @@ the chat, never through a file. Background and test log: `docs/injection-report.
    Interpreter one-liners are denied too (`node -e`, `node --eval`,
    `node --input-type`, `python -c`, `perl -e`, `npx`, …); a run on 2026-11-15
    confirmed both `node -e` and `node --input-type=module -e` are refused.
+   Prompts and commands in this repo therefore never tell the agent to run a
+   denied command: a single test is `cd app && npm test -- -t "<name>"`, not
+   `npx vitest`.
    Know the gaps that remain: deny lists match command patterns, so a script
    *file* run with `node file.mjs`, an `npm run` script, or an interpreter nobody
    listed can still reach the network — the way to run a verification snippet

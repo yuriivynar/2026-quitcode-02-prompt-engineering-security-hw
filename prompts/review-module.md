@@ -120,7 +120,9 @@ module had any known defect. Full trace: [`runs/review-module.md`](./runs/review
   sum 101 against a doc that promises the sum is *exactly* the total) and
   4 CRASH (`NaN`/non-integer reaching `formatMoney` as `"$NaN.NaN"`, `"$12.34.5"`).
 - **Scope held:** read-only as instructed; `git status --porcelain` byte-identical
-  before and after; verification done through `node -e`, no scratch files.
+  before and after; verification done through `node -e`, no scratch files (2026-09-14,
+  before the deny list; today `node -e` is refused, so a re-run traces by hand as
+  Constraints say).
 - **What the acceptance criteria actually bought:** the "quote the contradicted
   doc clause or it is not a finding" rule made the agent *discard* six plausible
   remarks (negative `hours`, `-0`, precision above `MAX_SAFE_INTEGER`) instead of

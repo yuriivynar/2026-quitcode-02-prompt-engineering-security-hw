@@ -154,3 +154,76 @@ docs/sanitized-brief.md, materials/decoy-request.md → ті самі катег
 
 Не перевірено: шлях `exit 3` (збій `grep` посеред скану) — його нічим було
 спровокувати на цій машині, тож він прочитаний, але не виконаний.
+
+## Кодування: UTF-16 і двійкові файли — 2026-11-27
+
+Повторна перевірка автора курсу 16.11 (−1 за санітизацію): «сканер, що дає CLEAN
+на UTF-16 файлі з ключем». Відтворено на старій версії скрипта — синтетичний файл
+у UTF-16LE з фейковим токеном `sk-…` на рядку 2:
+
+```
+== enc/k.txt                     # той самий текст у UTF-8 (рядки REVIEW пропущено)
+  BLOCK  key prefix (sk-/ghp_/github_pat_/AKIA/AIza)      1 line(s): 2
+  RESULT: BLOCK — 1 secret category(ies) found; do not send this file to any model
+== enc/k16.txt                   # UTF-16LE, без BOM
+  RESULT: CLEAN — no pattern matched (still read it once: patterns are not a guarantee)
+```
+
+Причина: `grep -a` шукає байти, а в UTF-16 після кожного ASCII-символу стоїть NUL
+(`s\0k\0-\0…`), тож жоден шаблон не збігається, і вердикт за замовчуванням — `CLEAN`.
+`grep -a` з попереднього виправлення лише не дає NUL сховати збіг у «Binary file
+matches», але кодування не декодує.
+
+Виправлення в `.claude/scripts/sanitize-scan.sh`:
+
+- спершу класифікація за першими байтами: BOM UTF-8 / UTF-16LE/BE / UTF-32LE/BE;
+  без BOM — розклад NUL-байтів у перших 64 КіБ (UTF-16LE — NUL на непарних
+  зміщеннях, BE — на парних, UTF-32 — два-три NUL на символ); без NUL — перевірка,
+  чи це валідний UTF-8, інакше спроба CP1251;
+- декодування через `iconv` у тимчасовий файл (`mktemp -d`, `umask 077`,
+  видаляється в `trap`); номери рядків зберігаються;
+- новий вердикт `MANUAL` (вихід `4`) для двійкового, недекодованого файлу або
+  кодування, визначеного лише здогадом: він **ніколи не `CLEAN`**. Такі файли
+  додатково скануються як сирі байти й без NUL, тож ASCII-ключ, перемежований
+  NUL-ами, все одно дає `BLOCK`;
+- `BLOCK` важливіший за `MANUAL`; з кількома файлами код виходу — найгірший
+  (`1` > `4` > `0`); бракує `iconv`/`od`/`awk` — вихід `3` без `RESULT:`.
+
+`/sanitize-check` і `/scope-client-request` знають про `MANUAL`: це зупинка, файл
+не читається. На всіх відстежуваних `*.md`, `*.ts`, `*.json`, `*.sh` (UTF-8) нова
+версія дає побайтово той самий вивід, що й стара.
+
+Регресійні тести — `bash .claude/scripts/sanitize-scan.test.sh`; фікстури
+генеруються під час запуску з явно фейкового токена (`sk` + `-FAKE0example0NOT0real0token`,
+зібраного з частин) і видаляються. Окрім вердикту й коду виходу, кожна перевірка
+стверджує, що значення токена не потрапило у вивід. Прогін дослівно:
+
+```
+$ bash .claude/scripts/sanitize-scan.test.sh
+ok   plain-key.txt → exit 1, BLOCK
+ok   plain-clean.txt → exit 0, CLEAN
+ok   utf16le-bom-key.txt → exit 1, BLOCK
+ok   utf16le-nobom-key.txt → exit 1, BLOCK
+ok   utf16be-bom-key.txt → exit 1, BLOCK
+ok   utf16be-nobom-key.txt → exit 1, BLOCK
+ok   utf32le-bom-key.txt → exit 1, BLOCK
+ok   utf32be-nobom-key.txt → exit 1, BLOCK
+ok   utf16le-bom-clean.txt → exit 0, CLEAN
+ok   utf16le-nobom-clean.txt → exit 4, MANUAL
+ok   cp1251-key.txt → exit 1, BLOCK
+ok   cp1251-address.txt → exit 4, MANUAL
+ok   nul-then-key.txt → exit 1, BLOCK
+ok   binary.bin → exit 4, MANUAL
+ok   does-not-exist.txt → exit 2, no RESULT
+ok   binary.bin + utf16le-nobom-key.txt → exit 1, MANUAL + BLOCK
+ok   cp1251-address.txt → street address found after decoding
+Tests: 17 passed, 0 failed (17)
+```
+
+Межі, які лишаються: кодування поза UTF-8/16/32 і CP1251 (наприклад, KOI8-U)
+декодуються як CP1251 або вважаються двійковими — тобто `MANUAL`, а не `CLEAN`, але
+кирилиця в них може бути прочитана неправильно, і шаблони адрес чи сум її не
+впізнають. Стиснені й контейнерні формати (`.docx`, `.pdf`, `.zip`) скрипт не
+розпаковує: вони майже завжди `MANUAL` (NUL-байти або невалідний UTF-8), а текст
+усередині стиснених потоків шаблони не бачать узагалі — такі файли людина спершу
+конвертує в текст, а тоді сканує.

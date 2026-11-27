@@ -140,6 +140,9 @@ $ npx vitest run --reporter=verbose
       Tests  13 failed | 20 passed (33)
 ```
 
+(Прогін 2026-09-15, до deny-списку. Нині `.claude/settings.json` забороняє
+`Bash(npx *)`, тож той самий запуск — `cd app && npm test -- --reporter=verbose`.)
+
 Where the 33 split on the original code (corrected 2026-11-15; earlier text said
 the 20 passing tests were all pre-existing, which the numbers contradict):
 
